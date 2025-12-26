@@ -1,0 +1,9 @@
+name: reminderassistantbot
+
+services:
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Worker.Dockerfile
+    environment:
+      - DOTNET_ENVIRONMENT=Development
