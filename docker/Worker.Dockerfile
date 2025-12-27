@@ -1,10 +1,10 @@
-# syntax=docker/dockerfile:1
+﻿# syntax=docker/dockerfile:1
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY ReminderAssistantBot.sln .
 COPY src/ReminderAssistantBot.Worker/ReminderAssistantBot.Worker.csproj src/ReminderAssistantBot.Worker/
-COPY src/ReminderAssistantBot.Domain/ReminderAssistantBot.Domain.csproj src/ReminderAssistantBot.Domain/
+COPY src/ReminderAssistantBot.Bot/ReminderAssistantBot.Bot.csproj src/ReminderAssistantBot.Bot/
 COPY src/ReminderAssistantBot.Telegram/ReminderAssistantBot.Telegram.csproj src/ReminderAssistantBot.Telegram/
 RUN dotnet restore src/ReminderAssistantBot.Worker/ReminderAssistantBot.Worker.csproj
 

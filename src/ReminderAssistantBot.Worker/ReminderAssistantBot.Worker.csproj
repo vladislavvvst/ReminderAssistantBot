@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -9,6 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ReminderAssistantBot.Bot\ReminderAssistantBot.Bot.csproj" />
+    <ProjectReference Include="..\ReminderAssistantBot.Telegram\ReminderAssistantBot.Telegram.csproj" />
   </ItemGroup>
 
 </Project>
