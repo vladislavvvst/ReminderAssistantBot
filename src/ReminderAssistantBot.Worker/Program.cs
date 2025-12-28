@@ -1,5 +1,5 @@
 using ReminderAssistantBot.Application;
-using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Application.Abstractions;
 using ReminderAssistantBot.Bot;
 using ReminderAssistantBot.Infrastructure;
 using ReminderAssistantBot.Telegram.Hosting;

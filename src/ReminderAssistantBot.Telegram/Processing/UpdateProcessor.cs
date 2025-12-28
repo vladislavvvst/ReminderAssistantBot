@@ -11,16 +11,16 @@ internal sealed class UpdateProcessor
     private readonly ILogger<UpdateProcessor> _logger;
     private readonly IStateCache _stateStorage;
     private readonly ISceneRegistry _sceneRegistry;
-    private readonly ICommandRouter? _commandRouter;
+    private readonly ICommandRouter _commandRouter;
     private readonly IBotClient _botClient;
 
     public UpdateProcessor(ILogger<UpdateProcessor> logger, IStateCache stateStorage, ISceneRegistry sceneRegistry,
-        IEnumerable<ICommandRouter> commandRouters, IBotClient botClient)
+        ICommandRouter commandRouter, IBotClient botClient)
     {
         _logger = logger;
         _stateStorage = stateStorage;
         _sceneRegistry = sceneRegistry;
-        _commandRouter = commandRouters.FirstOrDefault();
+        _commandRouter = commandRouter;
         _botClient = botClient;
     }
 
@@ -42,7 +42,7 @@ internal sealed class UpdateProcessor
         BotUpdate botUpdate = Map(update);
         UpdateContext context = new(_logger, _stateStorage, _botClient, botUpdate);
 
-        if (_commandRouter != null && await _commandRouter.TryHandleAsync(context, ct))
+        if (await _commandRouter.TryHandleAsync(context, ct))
             return;
 
         await SceneRouter.RouteAsync(context, _sceneRegistry, ct);

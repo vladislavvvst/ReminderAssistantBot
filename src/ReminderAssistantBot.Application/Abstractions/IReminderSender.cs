@@ -1,4 +1,4 @@
-﻿namespace ReminderAssistantBot.Application.Reminders;
+﻿namespace ReminderAssistantBot.Application.Abstractions;
 
 public interface IReminderSender
 {

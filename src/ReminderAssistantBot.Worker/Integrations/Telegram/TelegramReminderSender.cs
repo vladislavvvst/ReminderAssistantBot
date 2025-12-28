@@ -1,4 +1,4 @@
-﻿using ReminderAssistantBot.Application.Reminders;
+﻿using ReminderAssistantBot.Application.Abstractions;
 using ReminderAssistantBot.Telegram.SceneEngine;
 
 namespace ReminderAssistantBot.Worker.Integrations.Telegram;
