@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using ReminderAssistantBot.Bot.Infrastructure.Caching;
 using ReminderAssistantBot.Bot.Presentation.Common;
+using ReminderAssistantBot.Bot.Presentation.Features;
 using ReminderAssistantBot.Telegram.SceneEngine;
 
 namespace ReminderAssistantBot.Bot;
@@ -11,11 +12,12 @@ public static class ServiceExtensions
     {
         services.AddMemoryCache();
         services.AddSingleton<IStateCache, StateMemoryCache>();
-        services.AddSingleton<ISceneRegistry, SceneRegistryAdapter>();
-        services.AddSingleton<ICommandRouter, CommandRouter>();
+        services.AddScoped<ISceneRegistry, SceneRegistry>();
+        services.AddScoped<ICommandRouter, CommandRouter>();
         services.AddSingleton<IBotCommandsProvider, BotCommandsProvider>();
 
-        SceneRegistry.Bootstrap();
+        services.AddScoped<MainMenuScene>();
+        services.AddScoped<AddReminderScene>();
 
         return services;
     }

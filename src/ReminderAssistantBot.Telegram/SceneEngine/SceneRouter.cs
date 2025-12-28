@@ -4,7 +4,7 @@ internal static class SceneRouter
 {
     public static async Task RouteAsync(UpdateContext context, ISceneRegistry registry, CancellationToken ct)
     {
-        string stateKey = await context.StateCache.GetStateAsync(context.Update.ChatId);
+        string stateKey = await context.StateCache.GetStateAsync(context.Update.UserId);
         IScene scene = registry.GetScene(stateKey);
 
         switch (context.Update.Kind)

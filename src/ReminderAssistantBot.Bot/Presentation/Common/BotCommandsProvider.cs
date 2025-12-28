@@ -7,8 +7,8 @@ internal sealed class BotCommandsProvider : IBotCommandsProvider
 {
     public IReadOnlyList<BotCommandInfo> GetCommands() =>
     [
-        new(UiStrings.Commands.Start, UiStrings.Buttons.BotStart),
-        new(UiStrings.Commands.Menu, UiStrings.Buttons.BotMenu),
-        new(UiStrings.Commands.About, UiStrings.Buttons.BotAbout)
+        new(CommonUiStrings.Commands.Start, CommonUiStrings.Buttons.BotStart),
+        new(CommonUiStrings.Commands.Menu,  CommonUiStrings.Buttons.BotMenu),
+        new(CommonUiStrings.Commands.About, CommonUiStrings.Buttons.BotAbout)
     ];
 }

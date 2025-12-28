@@ -10,20 +10,20 @@ internal sealed class StateMemoryCache : IStateCache
 
     public StateMemoryCache(IMemoryCache cache) => _cache = cache;
 
-    public Task<string> GetStateAsync(long chatId)
+    public Task<string> GetStateAsync(long userId)
     {
-        string cacheKey = BuildStateKey(chatId);
+        string cacheKey = BuildStateKey(userId);
         return Task.FromResult(_cache.TryGetValue(cacheKey, out string? stateKey)
             ? stateKey!
             : SceneKeys.MainMenu);
     }
 
-    public Task SetStateAsync(long chatId, string stateKey)
+    public Task SetStateAsync(long userId, string stateKey)
     {
-        string cacheKey = BuildStateKey(chatId);
+        string cacheKey = BuildStateKey(userId);
         _cache.Set(cacheKey, stateKey);
         return Task.CompletedTask;
     }
 
-    private static string BuildStateKey(long chatId) => $"state:{chatId}";
+    private static string BuildStateKey(long userId) => $"state:{userId}";
 }

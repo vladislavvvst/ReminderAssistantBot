@@ -21,17 +21,17 @@ internal sealed class CommandRouter : ICommandRouter
 
         string cmd = text.Split(' ', 2)[0];
 
-        if (string.Equals(cmd, UiStrings.Commands.Start, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(cmd, UiStrings.Commands.Menu, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(cmd, UiStrings.Commands.Cancel, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(cmd, CommonUiStrings.Commands.Start,  StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(cmd, CommonUiStrings.Commands.Menu,   StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(cmd, CommonUiStrings.Commands.Cancel, StringComparison.OrdinalIgnoreCase))
         {
             await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.MainMenu, ct);
             return true;
         }
 
-        if (string.Equals(cmd, UiStrings.Commands.About, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(cmd, CommonUiStrings.Commands.About, StringComparison.OrdinalIgnoreCase))
         {
-            await context.Bot.SendTextAsync(context.Update.ChatId, UiStrings.Prompts.AboutBot, ParseMode.Html, null, ct);
+            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.AboutBot, ParseMode.Html, null, ct);
             return true;
         }
 

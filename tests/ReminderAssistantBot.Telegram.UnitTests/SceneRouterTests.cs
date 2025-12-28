@@ -11,7 +11,7 @@ public sealed class SceneRouterTests
     public async Task RouteAsync_Message_CallsOnMessage()
     {
         FakeStateCache stateCache = new("main");
-        TrackingScene scene = new("main");
+        TrackingScene scene = new();
         FakeSceneRegistry registry = new(scene);
         IBotClient botClient = new FakeBotClient();
         ILogger logger = NullLogger.Instance;
@@ -20,7 +20,7 @@ public sealed class SceneRouterTests
 
         await SceneRouter.RouteAsync(context, registry, CancellationToken.None);
 
-        Assert.Equal(42, stateCache.LastChatId);
+        Assert.Equal(42, stateCache.LastUserId);
         Assert.Equal("main", registry.LastStateKey);
         Assert.Equal(1, scene.MessageCalls);
         Assert.Equal(0, scene.CallbackCalls);
@@ -32,7 +32,7 @@ public sealed class SceneRouterTests
     public async Task RouteAsync_Callback_CallsOnCallback()
     {
         FakeStateCache stateCache = new("main");
-        TrackingScene scene = new("main");
+        TrackingScene scene = new();
         FakeSceneRegistry registry = new(scene);
         IBotClient botClient = new FakeBotClient();
         ILogger logger = NullLogger.Instance;
@@ -41,7 +41,7 @@ public sealed class SceneRouterTests
 
         await SceneRouter.RouteAsync(context, registry, CancellationToken.None);
 
-        Assert.Equal(42, stateCache.LastChatId);
+        Assert.Equal(42, stateCache.LastUserId);
         Assert.Equal("main", registry.LastStateKey);
         Assert.Equal(0, scene.MessageCalls);
         Assert.Equal(1, scene.CallbackCalls);
@@ -53,7 +53,7 @@ public sealed class SceneRouterTests
     public async Task RouteAsync_Other_CallsEnter()
     {
         FakeStateCache stateCache = new("main");
-        TrackingScene scene = new("main");
+        TrackingScene scene = new();
         FakeSceneRegistry registry = new(scene);
         IBotClient botClient = new FakeBotClient();
         ILogger logger = NullLogger.Instance;
@@ -62,7 +62,7 @@ public sealed class SceneRouterTests
 
         await SceneRouter.RouteAsync(context, registry, CancellationToken.None);
 
-        Assert.Equal(42, stateCache.LastChatId);
+        Assert.Equal(42, stateCache.LastUserId);
         Assert.Equal("main", registry.LastStateKey);
         Assert.Equal(0, scene.MessageCalls);
         Assert.Equal(0, scene.CallbackCalls);
@@ -74,7 +74,7 @@ public sealed class SceneRouterTests
     public async Task RouteAsync_UsesStateKeyFromCache()
     {
         FakeStateCache stateCache = new("scene_x");
-        TrackingScene scene = new("scene_x");
+        TrackingScene scene = new();
         FakeSceneRegistry registry = new(scene);
         IBotClient botClient = new FakeBotClient();
         ILogger logger = NullLogger.Instance;
@@ -90,7 +90,7 @@ public sealed class SceneRouterTests
     public async Task RouteAsync_Message_DoesNotCallEnterOrCallback()
     {
         FakeStateCache stateCache = new("main");
-        TrackingScene scene = new("main");
+        TrackingScene scene = new();
         FakeSceneRegistry registry = new(scene);
         IBotClient botClient = new FakeBotClient();
         ILogger logger = NullLogger.Instance;
@@ -107,7 +107,7 @@ public sealed class SceneRouterTests
     public async Task RouteAsync_Callback_DoesNotCallEnterOrMessage()
     {
         FakeStateCache stateCache = new("main");
-        TrackingScene scene = new("main");
+        TrackingScene scene = new();
         FakeSceneRegistry registry = new(scene);
         IBotClient botClient = new FakeBotClient();
         ILogger logger = NullLogger.Instance;
@@ -126,15 +126,15 @@ public sealed class SceneRouterTests
 
         public FakeStateCache(string stateKey) => _stateKey = stateKey;
 
-        public long LastChatId { get; private set; }
+        public long LastUserId { get; private set; }
 
-        public Task<string> GetStateAsync(long chatId)
+        public Task<string> GetStateAsync(long userId)
         {
-            LastChatId = chatId;
+            LastUserId = userId;
             return Task.FromResult(_stateKey);
         }
 
-        public Task SetStateAsync(long chatId, string stateKey) => Task.CompletedTask;
+        public Task SetStateAsync(long userId, string stateKey) => Task.CompletedTask;
     }
 
     private sealed class FakeSceneRegistry : ISceneRegistry
@@ -160,9 +160,6 @@ public sealed class SceneRouterTests
 
     private sealed class TrackingScene : IScene
     {
-        public TrackingScene(string stateKey) => StateKey = stateKey;
-
-        public string StateKey { get; }
         public int EnterCalls { get; private set; }
         public int MessageCalls { get; private set; }
         public int CallbackCalls { get; private set; }
@@ -185,17 +182,11 @@ public sealed class SceneRouterTests
             CallbackCalls++;
             return Task.CompletedTask;
         }
-
-        public Task OnBackAsync(UpdateContext context, CancellationToken ct)
-        {
-            BackCalls++;
-            return Task.CompletedTask;
-        }
     }
 
     private sealed class FakeBotClient : IBotClient
     {
-        public Task SendTextAsync(long chatId, string text, ParseMode parseMode, BotInlineKeyboard? keyboard, CancellationToken ct) =>
+        public Task SendTextAsync(long userId, string text, ParseMode parseMode, BotInlineKeyboard? keyboard, CancellationToken ct) =>
             Task.CompletedTask;
 
         public Task AnswerCallbackAsync(string callbackId, CancellationToken ct) => Task.CompletedTask;

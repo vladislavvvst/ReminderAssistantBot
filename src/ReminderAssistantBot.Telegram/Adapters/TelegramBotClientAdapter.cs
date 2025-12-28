@@ -12,12 +12,12 @@ internal sealed class TelegramBotClientAdapter : IBotClient
 
     public TelegramBotClientAdapter(ITelegramBotClient bot) => _bot = bot;
 
-    public Task SendTextAsync(long chatId, string text, ParseMode parseMode, BotInlineKeyboard? keyboard, CancellationToken ct)
+    public Task SendTextAsync(long userId, string text, ParseMode parseMode, BotInlineKeyboard? keyboard, CancellationToken ct)
     {
         InlineKeyboardMarkup? markup = keyboard is null ? null : MapKeyboard(keyboard);
         TgParseMode tgMode = parseMode == ParseMode.Html ? TgParseMode.Html : TgParseMode.None;
 
-        return _bot.SendMessage(chatId, text, parseMode: tgMode, replyMarkup: markup, cancellationToken: ct);
+        return _bot.SendMessage(userId, text, parseMode: tgMode, replyMarkup: markup, cancellationToken: ct);
     }
 
     public Task AnswerCallbackAsync(string callbackId, CancellationToken ct) =>

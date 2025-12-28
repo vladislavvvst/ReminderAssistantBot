@@ -52,29 +52,29 @@ internal sealed class UpdateProcessor
     {
         if (update.CallbackQuery is { } callback)
         {
-            long chatId = callback.Message?.Chat.Id ?? 0;
-            return new BotUpdate(UpdateKind.Callback, chatId, null, callback.Id, callback.Data);
+            long userId = callback.Message?.Chat.Id ?? 0;
+            return new BotUpdate(UpdateKind.Callback, userId, null, callback.Id, callback.Data);
         }
 
         if (update.Message is { } message)
         {
-            long chatId = message.Chat.Id;
-            return new BotUpdate(UpdateKind.Message, chatId, message.Text, null, null);
+            long userId = message.Chat.Id;
+            return new BotUpdate(UpdateKind.Message, userId, message.Text, null, null);
         }
 
-        long fallbackChatId = update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id ?? 0;
-        return new BotUpdate(UpdateKind.Other, fallbackChatId, null, null, null);
+        long fallbackUserId = update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id ?? 0;
+        return new BotUpdate(UpdateKind.Other, fallbackUserId, null, null, null);
     }
 
     private static bool IsAllowedAndPrivate(Update update)
     {
-        long? id = TryGetChatId(update);
+        long? id = TryGetUserId(update);
         return id is not null && IsPrivate(update);
     }
 
     private static bool IsPrivate(Update update) =>
         (update.Message?.Chat.Type ?? update.CallbackQuery?.Message?.Chat.Type) == global::Telegram.Bot.Types.Enums.ChatType.Private;
 
-    private static long? TryGetChatId(Update update) =>
+    private static long? TryGetUserId(Update update) =>
         update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id;
 }

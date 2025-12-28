@@ -2,6 +2,6 @@
 
 public interface IStateCache
 {
-    Task<string> GetStateAsync(long chatId);
-    Task SetStateAsync(long chatId, string stateKey);
+    Task<string> GetStateAsync(long userId);
+    Task SetStateAsync(long userId, string stateKey);
 }
