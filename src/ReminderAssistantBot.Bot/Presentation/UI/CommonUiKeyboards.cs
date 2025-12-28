@@ -10,7 +10,8 @@ internal static class CommonUiKeyboards
         {
             IReadOnlyList<IReadOnlyList<BotButton>> rows =
             [
-                [ new BotButton(CommonUiStrings.Buttons.AddReminder, CommonUiStrings.CallbackData.NavAddReminder) ]
+                [ new BotButton(CommonUiStrings.Buttons.AddReminder, CommonUiStrings.CallbackData.NavAddReminder) ],
+                [ new BotButton(CommonUiStrings.Buttons.ShowActiveReminders, CommonUiStrings.CallbackData.NavShowActiveReminders) ]
             ];
 
             return new BotInlineKeyboard(rows);

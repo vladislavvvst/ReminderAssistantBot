@@ -6,6 +6,7 @@ internal static class CommonUiStrings
     {
         public const string NavBack = "nav:back";
         public const string NavAddReminder = "rem:add";
+        public const string NavShowActiveReminders = "rem:showActiveReminders";
     }
 
     internal static class Commands
@@ -24,16 +25,19 @@ internal static class CommonUiStrings
 
         public const string Back = "⬅️ Назад";
         public const string AddReminder = "➕ Добавить напоминание";
+        public const string ShowActiveReminders = "📝 Показать активные";
     }
 
     internal static class Prompts
     {
         public const string ChooseAction = "Выберите действие:";
+        public const string ActiveReminders = "Активные:";
+        public const string ActiveRemindersEmpty = "Активных напоминаний нет";
         public const string AddReminder = "⏰ Установите напоминание\nФормат ввода:\n01.01.2026 00:00 Новый Год";
+        public const string Success = "✔ Успех";
         public const string AboutBot =
             "<b>Reminder Assistant Bot - это ассистент напоминаний. " +
             "Он помогает создавать, просматривать и управлять задачами, используя диалоговые сцены и удобную навигацию</b>";
-        public const string Success = "✔ Успех";
     }
 
     internal static class Errors

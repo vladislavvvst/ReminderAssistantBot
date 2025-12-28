@@ -6,6 +6,7 @@ public interface IReminderRepository
 {
     Task AddAsync(Reminder reminder, CancellationToken ct);
     Task<IReadOnlyList<Reminder>> GetDueAsync(DateTime utcNow, CancellationToken ct);
+    Task<IReadOnlyList<Reminder>> GetActiveAsync(long userId, CancellationToken ct);
     Task UpdateStatusAsync(Guid id, ReminderStatus status, DateTime? sentAtUtc, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }

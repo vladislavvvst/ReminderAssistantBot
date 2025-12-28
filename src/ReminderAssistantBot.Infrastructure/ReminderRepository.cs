@@ -25,6 +25,16 @@ internal sealed class ReminderRepository : IReminderRepository
         return entities.Select(Map).ToList();
     }
 
+    public async Task<IReadOnlyList<Reminder>> GetActiveAsync(long userId, CancellationToken ct)
+    {
+        List<ReminderEntity> entities = await _dbContext.Reminders
+            .Where(x => x.Status == ReminderStatus.Pending && x.UserId == userId)
+            .OrderBy(x => x.DueAtUtc)
+            .ToListAsync(ct);
+
+        return entities.Select(Map).ToList();
+    }
+
     public async Task UpdateStatusAsync(Guid id, ReminderStatus status, DateTime? sentAtUtc, CancellationToken ct)
     {
         await _dbContext.Reminders

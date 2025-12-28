@@ -3,7 +3,7 @@ using ReminderAssistantBot.Domain;
 
 namespace ReminderAssistantBot.Application.Reminders;
 
-public sealed class CreateReminder : ICreateReminder
+internal sealed class CreateReminder : ICreateReminder
 {
     private readonly IReminderRepository _repository;
 

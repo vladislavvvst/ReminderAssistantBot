@@ -15,7 +15,8 @@ internal sealed class SceneRegistry : ISceneRegistry
         _sceneTypes = new Dictionary<string, Type>
         {
             [SceneKeys.MainMenu] = typeof(MainMenuScene),
-            [SceneKeys.AddReminder] = typeof(AddReminderScene)
+            [SceneKeys.AddReminder] = typeof(AddReminderScene),
+            [SceneKeys.ActiveReminders] = typeof(ActiveRemindersScene)
         };
     }
 
