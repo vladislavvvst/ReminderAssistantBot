@@ -1,4 +1,4 @@
-﻿using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Application.Reminders;
 using ReminderAssistantBot.Bot.Presentation.Common;
 using ReminderAssistantBot.Bot.Presentation.UI;
 using ReminderAssistantBot.Domain;
@@ -11,27 +11,31 @@ internal sealed class DeleteReminderScene : IScene
     private readonly IReminderQueries _reminderQueries;
     private readonly IDeleteReminder _deleteReminder;
     private readonly ISceneRegistry _sceneRegistry;
+    private readonly IUiStateCache _uiStateCache;
 
-    public DeleteReminderScene(IReminderQueries reminderQueries, IDeleteReminder deleteReminder, ISceneRegistry sceneRegistry)
+    public DeleteReminderScene(IReminderQueries reminderQueries, IDeleteReminder deleteReminder, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
     {
         _reminderQueries = reminderQueries;
         _deleteReminder = deleteReminder;
         _sceneRegistry = sceneRegistry;
+        _uiStateCache = uiStateCache;
     }
 
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
+        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+
         IReadOnlyList<Reminder> activeReminders = await _reminderQueries.GetActiveAsync(context.Update.UserId, ct);
 
         if (activeReminders.Count == 0)
         {
-            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.ActiveRemindersEmpty,
+            await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ActiveRemindersEmpty,
                 ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
             return;
         }
 
-        await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.ChooseDeleteReminder,
-            ParseMode.None, CommonUiKeyboards.DeleteReminderKeyboard.Create(activeReminders), ct);
+        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ChooseDeleteReminder,
+            ParseMode.Html, CommonUiKeyboards.DeleteReminderKeyboard.Create(activeReminders), ct);
     }
 
     public async Task OnMessageAsync(UpdateContext context, CancellationToken ct)
@@ -72,6 +76,9 @@ internal sealed class DeleteReminderScene : IScene
         await context.Bot.SendTextAsync(userId, CommonUiStrings.Errors.UnknownCmd, ParseMode.None, null, ct);
     }
 
-    private Task OnBackAsync(UpdateContext context, CancellationToken ct) =>
-        _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    private async Task OnBackAsync(UpdateContext context, CancellationToken ct)
+    {
+        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+        await _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    }
 }

@@ -39,6 +39,8 @@ internal sealed class UpdateProcessor
         if (!IsAllowedAndPrivate(update))
             return;
 
+        await ClearInlineKeyboardAsync(botClient, update, ct);
+
         BotUpdate botUpdate = Map(update);
         UpdateContext context = new(_logger, _stateStorage, _botClient, botUpdate);
 
@@ -64,6 +66,21 @@ internal sealed class UpdateProcessor
 
         long fallbackUserId = update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id ?? 0;
         return new BotUpdate(UpdateKind.Other, fallbackUserId, null, null, null);
+    }
+
+    private async Task ClearInlineKeyboardAsync(ITelegramBotClient botClient, Update update, CancellationToken ct)
+    {
+        if (update.CallbackQuery?.Message is not { } message)
+            return;
+
+        try
+        {
+            await botClient.EditMessageReplyMarkup(message.Chat.Id, message.MessageId, replyMarkup: null, cancellationToken: ct);
+        }
+        catch (global::Telegram.Bot.Exceptions.RequestException ex)
+        {
+            _logger.LogDebug(ex, "Failed to clear inline keyboard");
+        }
     }
 
     private static bool IsAllowedAndPrivate(Update update)

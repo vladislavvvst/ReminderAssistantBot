@@ -33,10 +33,10 @@ internal static class CommonUiStrings
 
     internal static class Prompts
     {
-        public const string ChooseAction = "Выберите действие:";
-        public const string ActiveReminders = "Активные:";
+        public const string ChooseAction = "<b>Выберите действие:</b>";
+        public const string ActiveReminders = "<b>Активные:</b>";
         public const string ActiveRemindersEmpty = "Активных напоминаний нет";
-        public const string ChooseDeleteReminder = "Выберите напоминание для удаления:";
+        public const string ChooseDeleteReminder = "<b>Выберите напоминание для удаления:</b>";
         public const string AddReminder = "⏰ Установите напоминание\nФормат ввода:\n01.01.2026 00:00 Новый Год";
         public const string Success = "✔ Успех";
         public const string AboutBot =

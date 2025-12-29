@@ -189,6 +189,12 @@ public sealed class SceneRouterTests
         public Task SendTextAsync(long userId, string text, ParseMode parseMode, BotInlineKeyboard? keyboard, CancellationToken ct) =>
             Task.CompletedTask;
 
+        public Task<int> SendTextWithIdAsync(long userId, string text, ParseMode parseMode, BotInlineKeyboard? keyboard, CancellationToken ct) =>
+            Task.FromResult(1);
+
+        public Task ClearKeyboardAsync(long userId, int messageId, CancellationToken ct) =>
+            Task.CompletedTask;
+
         public Task AnswerCallbackAsync(string callbackId, CancellationToken ct) => Task.CompletedTask;
     }
 }

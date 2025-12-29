@@ -1,5 +1,6 @@
 ﻿using ReminderAssistantBot.Telegram.SceneEngine;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
 using TgParseMode = Telegram.Bot.Types.Enums.ParseMode;
@@ -19,6 +20,17 @@ internal sealed class TelegramBotClientAdapter : IBotClient
 
         return _bot.SendMessage(userId, text, parseMode: tgMode, replyMarkup: markup, cancellationToken: ct);
     }
+
+    public async Task<int> SendTextWithIdAsync(long userId, string text, ParseMode parseMode, BotInlineKeyboard? keyboard, CancellationToken ct)
+    {
+        InlineKeyboardMarkup? markup = keyboard is null ? null : MapKeyboard(keyboard);
+        TgParseMode tgMode = parseMode == ParseMode.Html ? TgParseMode.Html : TgParseMode.None;
+        Message message = await _bot.SendMessage(userId, text, parseMode: tgMode, replyMarkup: markup, cancellationToken: ct);
+        return message.MessageId;
+    }
+
+    public Task ClearKeyboardAsync(long userId, int messageId, CancellationToken ct) =>
+        _bot.EditMessageReplyMarkup(userId, messageId, replyMarkup: null, cancellationToken: ct);
 
     public Task AnswerCallbackAsync(string callbackId, CancellationToken ct) =>
         _bot.AnswerCallbackQuery(callbackId, cancellationToken: ct);

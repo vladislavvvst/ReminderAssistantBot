@@ -1,4 +1,4 @@
-﻿using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Application.Reminders;
 using ReminderAssistantBot.Bot.Presentation.Common;
 using ReminderAssistantBot.Bot.Presentation.UI;
 using ReminderAssistantBot.Telegram.SceneEngine;
@@ -10,33 +10,36 @@ internal sealed class AddReminderScene : IScene
 {
     private readonly ICreateReminder _createReminder;
     private readonly ISceneRegistry _sceneRegistry;
+    private readonly IUiStateCache _uiStateCache;
 
-    public AddReminderScene(ICreateReminder createReminder, ISceneRegistry sceneRegistry)
+    public AddReminderScene(ICreateReminder createReminder, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
     {
         _createReminder = createReminder;
         _sceneRegistry = sceneRegistry;
+        _uiStateCache = uiStateCache;
     }
 
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
-        await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.AddReminder,
-            ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
+        await ShowPromptAsync(context, ct);
     }
 
     public async Task OnMessageAsync(UpdateContext context, CancellationToken ct)
     {
+        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+
         string input = context.Update.Text ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(input))
         {
-            await EnterAsync(context, ct);
+            await ShowPromptAsync(context, ct);
             return;
         }
 
         string[] parts = input.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 3)
         {
-            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.AddReminder, ParseMode.None, null, ct);
+            await ShowPromptAsync(context, ct);
             return;
         }
 
@@ -45,7 +48,7 @@ internal sealed class AddReminderScene : IScene
         if (!DateTime.TryParseExact($"{datePart} {timePart}", "dd.MM.yyyy HH:mm",
             CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime localDateTime))
         {
-            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.AddReminder, ParseMode.None, null, ct);
+            await ShowPromptAsync(context, ct);
             return;
         }
 
@@ -75,6 +78,15 @@ internal sealed class AddReminderScene : IScene
         await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Errors.UnknownCmd, ParseMode.None, null, ct);
     }
 
-    private Task OnBackAsync(UpdateContext context, CancellationToken ct) =>
-        _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    private async Task OnBackAsync(UpdateContext context, CancellationToken ct)
+    {
+        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+        await _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    }
+
+    private async Task ShowPromptAsync(UpdateContext context, CancellationToken ct)
+    {
+        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.AddReminder,
+            ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
+    }
 }

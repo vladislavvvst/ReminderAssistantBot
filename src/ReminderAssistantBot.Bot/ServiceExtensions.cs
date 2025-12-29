@@ -12,6 +12,7 @@ public static class ServiceExtensions
     {
         services.AddMemoryCache();
         services.AddSingleton<IStateCache, StateMemoryCache>();
+        services.AddSingleton<IUiStateCache, UiStateMemoryCache>();
         services.AddScoped<ISceneRegistry, SceneRegistry>();
         services.AddScoped<ICommandRouter, CommandRouter>();
         services.AddSingleton<IBotCommandsProvider, BotCommandsProvider>();

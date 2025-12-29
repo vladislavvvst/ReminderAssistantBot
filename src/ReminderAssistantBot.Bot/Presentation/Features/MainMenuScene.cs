@@ -7,14 +7,21 @@ namespace ReminderAssistantBot.Bot.Presentation.Features;
 internal sealed class MainMenuScene : IScene
 {
     private readonly ISceneRegistry _sceneRegistry;
+    private readonly IUiStateCache _uiStateCache;
 
-    public MainMenuScene(ISceneRegistry sceneRegistry) => _sceneRegistry = sceneRegistry;
+    public MainMenuScene(ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
+    {
+        _sceneRegistry = sceneRegistry;
+        _uiStateCache = uiStateCache;
+    }
 
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
         BackStackService.Clear(context.Update.UserId);
-        await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.ChooseAction,
-            ParseMode.None, CommonUiKeyboards.MainMenuUiKeyboard.Create(), ct);
+        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+
+        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ChooseAction,
+            ParseMode.Html, CommonUiKeyboards.MainMenuUiKeyboard.Create(), ct);
     }
 
     public async Task OnMessageAsync(UpdateContext context, CancellationToken ct)

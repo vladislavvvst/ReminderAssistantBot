@@ -1,4 +1,4 @@
-﻿using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Application.Reminders;
 using ReminderAssistantBot.Bot.Presentation.Common;
 using ReminderAssistantBot.Bot.Presentation.UI;
 using ReminderAssistantBot.Domain;
@@ -11,21 +11,25 @@ internal sealed class ActiveRemindersScene : IScene
 {
     private readonly IReminderQueries _reminderQueries;
     private readonly ISceneRegistry _sceneRegistry;
+    private readonly IUiStateCache _uiStateCache;
 
-    public ActiveRemindersScene(IReminderQueries reminderQueries, ISceneRegistry sceneRegistry)
+    public ActiveRemindersScene(IReminderQueries reminderQueries, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
     {
         _reminderQueries = reminderQueries;
         _sceneRegistry = sceneRegistry;
+        _uiStateCache = uiStateCache;
     }
 
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
         long userId = context.Update.UserId;
-        IReadOnlyList<Reminder> activeReminders = await _reminderQueries.GetActiveAsync(context.Update.UserId, ct);
+        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+
+        IReadOnlyList<Reminder> activeReminders = await _reminderQueries.GetActiveAsync(userId, ct);
 
         if (activeReminders.Count == 0)
         {
-            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.ActiveRemindersEmpty,
+            await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ActiveRemindersEmpty,
                 ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
             return;
         }
@@ -40,11 +44,12 @@ internal sealed class ActiveRemindersScene : IScene
         foreach (Reminder reminder in activeReminders)
         {
             DateTime local = TimeZoneInfo.ConvertTimeFromUtc(reminder.DueAtUtc, timeZone);
-            sb.AppendLine($"{index}) {local:dd.MM.yyyy HH:mm} — {reminder.Message}");
+            sb.AppendLine($"{index}) {local:dd.MM.yyyy HH:mm} - {reminder.Message}");
             index++;
         }
 
-        await context.Bot.SendTextAsync(userId, sb.ToString(), ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
+        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, sb.ToString(),
+            ParseMode.Html, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
     }
 
     public async Task OnMessageAsync(UpdateContext context, CancellationToken ct)
@@ -68,6 +73,9 @@ internal sealed class ActiveRemindersScene : IScene
         await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Errors.UnknownCmd, ParseMode.None, null, ct);
     }
 
-    private Task OnBackAsync(UpdateContext context, CancellationToken ct) =>
-        _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    private async Task OnBackAsync(UpdateContext context, CancellationToken ct)
+    {
+        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+        await _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    }
 }
