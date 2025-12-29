@@ -12,7 +12,7 @@ using ReminderAssistantBot.Infrastructure;
 namespace ReminderAssistantBot.Infrastructure.Migrations
 {
     [DbContext(typeof(ReminderDbContext))]
-    [Migration("20251228141936_InitialCreate")]
+    [Migration("20251229181837_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

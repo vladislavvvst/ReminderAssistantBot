@@ -12,8 +12,6 @@ internal sealed class CreateReminder : ICreateReminder
     public async Task HandleAsync(long userId, string message, DateTime dueAtUtc, CancellationToken ct)
     {
         Reminder reminder = new(userId, message, dueAtUtc);
-
         await _repository.AddAsync(reminder, ct);
-        await _repository.SaveChangesAsync(ct);
     }
 }

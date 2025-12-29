@@ -1,9 +1,17 @@
 name: reminderassistantbot
 
 services:
-  worker:
-    build:
-      context: ..
-      dockerfile: docker/Worker.Dockerfile
+  db:
+    image: postgres:16
+    container_name: reminder_db
     environment:
-      - DOTNET_ENVIRONMENT=Development
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - reminder_pg:/var/lib/postgresql/data
+
+volumes:
+  reminder_pg:

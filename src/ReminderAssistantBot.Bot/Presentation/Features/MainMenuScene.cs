@@ -41,6 +41,12 @@ internal sealed class MainMenuScene : IScene
             return;
         }
 
+        if (string.Equals(data, CommonUiStrings.CallbackData.NavDeleteReminder, StringComparison.Ordinal))
+        {
+            await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.DeleteReminder, ct);
+            return;
+        }
+
         if (string.Equals(data, CommonUiStrings.CallbackData.NavShowActiveReminders, StringComparison.Ordinal))
         {
             await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.ActiveReminders, ct);

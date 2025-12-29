@@ -19,6 +19,7 @@ public static class ServiceExtensions
         services.AddScoped<MainMenuScene>();
         services.AddScoped<AddReminderScene>();
         services.AddScoped<ActiveRemindersScene>();
+        services.AddScoped<DeleteReminderScene>();
 
         return services;
     }

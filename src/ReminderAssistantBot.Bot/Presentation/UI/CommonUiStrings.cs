@@ -7,6 +7,8 @@ internal static class CommonUiStrings
         public const string NavBack = "nav:back";
         public const string NavAddReminder = "rem:add";
         public const string NavShowActiveReminders = "rem:showActiveReminders";
+        public const string NavDeleteReminder = "rem:deleteReminder";
+        public const string NavDeleteRem = "rem:del:";
     }
 
     internal static class Commands
@@ -25,6 +27,7 @@ internal static class CommonUiStrings
 
         public const string Back = "⬅️ Назад";
         public const string AddReminder = "➕ Добавить напоминание";
+        public const string DeleteReminder = "🗑️ Удалить напоминание";
         public const string ShowActiveReminders = "📝 Показать активные";
     }
 
@@ -33,6 +36,7 @@ internal static class CommonUiStrings
         public const string ChooseAction = "Выберите действие:";
         public const string ActiveReminders = "Активные:";
         public const string ActiveRemindersEmpty = "Активных напоминаний нет";
+        public const string ChooseDeleteReminder = "Выберите напоминание для удаления:";
         public const string AddReminder = "⏰ Установите напоминание\nФормат ввода:\n01.01.2026 00:00 Новый Год";
         public const string Success = "✔ Успех";
         public const string AboutBot =
@@ -43,5 +47,6 @@ internal static class CommonUiStrings
     internal static class Errors
     {
         public const string UnknownCmd = "🤷‍♂️ Неизвестная команда";
+        public const string NotFound = "🤷‍♂️ Такого нету";
     }
 }

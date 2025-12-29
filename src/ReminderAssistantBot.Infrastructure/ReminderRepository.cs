@@ -13,6 +13,7 @@ internal sealed class ReminderRepository : IReminderRepository
     public async Task AddAsync(Reminder reminder, CancellationToken ct)
     {
         await _dbContext.Reminders.AddAsync(Map(reminder), ct);
+        await _dbContext.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<Reminder>> GetDueAsync(DateTime utcNow, CancellationToken ct)
@@ -35,6 +36,15 @@ internal sealed class ReminderRepository : IReminderRepository
         return entities.Select(Map).ToList();
     }
 
+    public async Task<bool> DeleteAsync(long userId, Guid reminderId, CancellationToken ct)
+    {
+        int deleted = await _dbContext.Reminders
+            .Where(x => x.Id == reminderId && x.UserId == userId && x.Status == ReminderStatus.Pending)
+            .ExecuteDeleteAsync(cancellationToken: ct);
+
+        return deleted > 0;
+    }
+
     public async Task UpdateStatusAsync(Guid id, ReminderStatus status, DateTime? sentAtUtc, CancellationToken ct)
     {
         await _dbContext.Reminders
@@ -42,11 +52,6 @@ internal sealed class ReminderRepository : IReminderRepository
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(x => x.Status, status)
                 .SetProperty(x => x.SentAtUtc, sentAtUtc), ct);
-    }
-
-    public async Task SaveChangesAsync(CancellationToken ct)
-    {
-        await _dbContext.SaveChangesAsync(ct);
     }
 
     private static ReminderEntity Map(Reminder reminder)
