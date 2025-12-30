@@ -29,6 +29,10 @@ internal static class Program
         }));
 
         IHost host = builder.Build();
+
+        if (host.Services.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            await host.Services.ApplyMigrationsAsync();
+
         await host.RunAsync();
     }
 }

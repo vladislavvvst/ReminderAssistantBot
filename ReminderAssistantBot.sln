@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{D59B22
 	ProjectSection(SolutionItems) = preProject
 		docker\docker-compose.yml = docker\docker-compose.yml
 		docker\Worker.Dockerfile = docker\Worker.Dockerfile
+		docker\docker-compose.dev.yml = docker\docker-compose.dev.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReminderAssistantBot.Bot", "src\ReminderAssistantBot.Bot\ReminderAssistantBot.Bot.csproj", "{31AC8E4A-F278-4BC3-94FA-E4AD95AE1D4E}"
