@@ -16,7 +16,7 @@ internal static class Program
 
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
-        builder.Services.AddReminderBot();
+        builder.Services.AddReminderBot(builder.Configuration);
         builder.Services.AddTelegramPolling(builder.Configuration);
 
         builder.Services.AddScoped<IReminderSender, TelegramReminderSender>();

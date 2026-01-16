@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Bot.Options;
 using ReminderAssistantBot.Bot.Presentation.Common;
 using ReminderAssistantBot.Bot.Presentation.UI;
 using ReminderAssistantBot.Domain;
@@ -6,15 +8,14 @@ using ReminderAssistantBot.Telegram.SceneEngine;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class DeleteReminderScene (IReminderService reminderService, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache) : IScene
+internal sealed class DeleteReminderScene (IReminderService reminderService, ISceneRegistry sceneRegistry,
+    IUiStateCache uiStateCache, IOptions<ReminderOptions> options) : IScene
 {
-    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(5);
-
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
         await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
-        (OperationStatus status, IReadOnlyList<Reminder> activeReminders) = await reminderService.GetActiveAsync(context.Update.UserId, _timeout, ct);
+        (OperationStatus status, IReadOnlyList<Reminder> activeReminders) = await reminderService.GetActiveAsync(context.Update.UserId, options.Value.TimeoutOperation, ct);
         if (!await TryHandleStatusAsync(context, status, ct))
             return;
 
@@ -53,7 +54,7 @@ internal sealed class DeleteReminderScene (IReminderService reminderService, ISc
             string idText = data[CommonUiStrings.CallbackData.NavDeleteRem.Length..];
             if (Guid.TryParseExact(idText, "N", out Guid reminderId))
             {
-                OperationStatus status = await reminderService.DeleteAsync(userId, reminderId, _timeout,  ct);
+                OperationStatus status = await reminderService.DeleteAsync(userId, reminderId, options.Value.TimeoutOperation, ct);
                 if (await TryHandleStatusAsync(context, status, ct))
                 {
                     await context.Bot.SendTextAsync(userId, CommonUiStrings.Prompts.Success, ParseMode.None, null, ct);

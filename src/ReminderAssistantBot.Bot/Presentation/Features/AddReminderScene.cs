@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Bot.Options;
 using ReminderAssistantBot.Bot.Presentation.Common;
 using ReminderAssistantBot.Bot.Presentation.UI;
 using ReminderAssistantBot.Telegram.SceneEngine;
@@ -6,10 +8,9 @@ using System.Globalization;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class AddReminderScene(IReminderService reminderService, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache) : IScene
+internal sealed class AddReminderScene(IReminderService reminderService, ISceneRegistry sceneRegistry,
+    IUiStateCache uiStateCache, IOptions<ReminderOptions> options) : IScene
 {
-    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(5);
-
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
         await UiKeyboard.SendAndTrackAsync(context, uiStateCache, CommonUiStrings.Prompts.AddReminder,
@@ -54,7 +55,7 @@ internal sealed class AddReminderScene(IReminderService reminderService, ISceneR
             return;
         }
 
-        OperationStatus status = await reminderService.CreateAsync(context.Update.UserId, message, dueAtUtc, _timeout, ct);
+        OperationStatus status = await reminderService.CreateAsync(context.Update.UserId, message, dueAtUtc, options.Value.TimeoutOperation, ct);
         await HandleStatusAsync(context, status, ct);
     }
 

@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Bot.Options;
 using ReminderAssistantBot.Bot.Presentation.Common;
 using ReminderAssistantBot.Bot.Presentation.UI;
 using ReminderAssistantBot.Domain;
@@ -7,16 +9,15 @@ using System.Text;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class ActiveRemindersScene(IReminderService reminderService, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache) : IScene
+internal sealed class ActiveRemindersScene(IReminderService reminderService, ISceneRegistry sceneRegistry,
+    IUiStateCache uiStateCache, IOptions<ReminderOptions> options) : IScene
 {
-    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(5);
-
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
         long userId = context.Update.UserId;
         await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
-        (OperationStatus status, IReadOnlyList<Reminder> activeReminders) = await reminderService.GetActiveAsync(userId, _timeout, ct);
+        (OperationStatus status, IReadOnlyList<Reminder> activeReminders) = await reminderService.GetActiveAsync(userId, options.Value.TimeoutOperation, ct);
         if (!await TryHandleStatusAsync(context, status, ct))
             return;
 

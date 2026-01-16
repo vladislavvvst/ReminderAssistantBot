@@ -1,8 +1,11 @@
-﻿using ReminderAssistantBot.Application.Reminders;
+﻿using Microsoft.Extensions.Options;
+using ReminderAssistantBot.Application.Reminders;
+using ReminderAssistantBot.Bot.Options;
 
 namespace ReminderAssistantBot.Worker.HostedServices;
 
-internal sealed class ReminderDispatchWorker(ILogger<ReminderDispatchWorker> logger, IServiceScopeFactory scopeFactory) : BackgroundService
+internal sealed class ReminderDispatchWorker(ILogger<ReminderDispatchWorker> logger,
+    IServiceScopeFactory scopeFactory, IOptions<ReminderOptions> options) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -17,7 +20,7 @@ internal sealed class ReminderDispatchWorker(ILogger<ReminderDispatchWorker> log
                 using IServiceScope scope = scopeFactory.CreateScope();
                 DispatchDueReminders handler = scope.ServiceProvider.GetRequiredService<DispatchDueReminders>();
 
-                OperationStatus status = await handler.HandleAsync(TimeSpan.FromSeconds(5), stoppingToken);
+                OperationStatus status = await handler.HandleAsync(options.Value.TimeoutOperation, stoppingToken);
                 if (status != OperationStatus.Success)
                     logger.LogError("Dispatch reminder failed: {Status}", status);
 
