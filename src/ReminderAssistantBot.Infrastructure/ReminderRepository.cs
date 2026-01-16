@@ -1,57 +1,99 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ReminderAssistantBot.Application.Abstractions;
 using ReminderAssistantBot.Domain;
+using System.Data.Common;
 
 namespace ReminderAssistantBot.Infrastructure;
 
-internal sealed class ReminderRepository : IReminderRepository
+internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, ReminderDbContext dbContext) : IReminderRepository
 {
-    private readonly ReminderDbContext _dbContext;
-
-    public ReminderRepository(ReminderDbContext dbContext) => _dbContext = dbContext;
-
     public async Task AddAsync(Reminder reminder, CancellationToken ct)
     {
-        await _dbContext.Reminders.AddAsync(Map(reminder), ct);
-        await _dbContext.SaveChangesAsync(ct);
+        try
+        {
+            await dbContext.Reminders.AddAsync(Map(reminder), ct);
+            await dbContext.SaveChangesAsync(ct);
+        }
+        catch (Exception ex) when (IsDbFailure(ex))
+        {
+            logger.LogError(ex, "Database write reminder failed. UserId={UserId}, ReminderId={ReminderId}", reminder.UserId, reminder.Id);
+            throw new PersistenceUnavailableException("Database write reminder failed", ex);
+        }
     }
 
     public async Task<IReadOnlyList<Reminder>> GetDueAsync(DateTime utcNow, CancellationToken ct)
     {
-        List<ReminderEntity> entities = await _dbContext.Reminders
-            .Where(x => x.Status == ReminderStatus.Pending && x.DueAtUtc <= utcNow)
-            .OrderBy(x => x.DueAtUtc)
-            .ToListAsync(cancellationToken: ct);
+        try
+        {
+            List<ReminderEntity> entities = await dbContext.Reminders
+                .AsNoTracking()
+                .Where(x => x.Status == ReminderStatus.Pending && x.DueAtUtc <= utcNow)
+                .OrderBy(x => x.DueAtUtc)
+                .ToListAsync(cancellationToken: ct);
 
-        return entities.Select(Map).ToList();
+            return entities.Select(Map).ToList();
+        }
+        catch (Exception ex) when (IsDbFailure(ex))
+        {
+            logger.LogError(ex, "Database get due reminders failed");
+            throw new PersistenceUnavailableException("Database get due reminders failed", ex);
+        }
     }
 
     public async Task<IReadOnlyList<Reminder>> GetActiveAsync(long userId, CancellationToken ct)
     {
-        List<ReminderEntity> entities = await _dbContext.Reminders
-            .Where(x => x.Status == ReminderStatus.Pending && x.UserId == userId)
-            .OrderBy(x => x.DueAtUtc)
-            .ToListAsync(ct);
+        try
+        {
+            List<ReminderEntity> entities = await dbContext.Reminders
+                .AsNoTracking()
+                .Where(x => x.Status == ReminderStatus.Pending && x.UserId == userId)
+                .OrderBy(x => x.DueAtUtc)
+                .ToListAsync(ct);
 
-        return entities.Select(Map).ToList();
+            return entities.Select(Map).ToList();
+        }
+        catch (Exception ex) when (IsDbFailure(ex))
+        {
+            logger.LogError(ex, "Database get active reminders failed");
+            throw new PersistenceUnavailableException("Database get active reminders failed", ex);
+        }
     }
 
-    public async Task<bool> DeleteAsync(long userId, Guid reminderId, CancellationToken ct)
+    public async Task<int> DeleteAsync(long userId, Guid reminderId, CancellationToken ct)
     {
-        int deleted = await _dbContext.Reminders
-            .Where(x => x.Id == reminderId && x.UserId == userId && x.Status == ReminderStatus.Pending)
-            .ExecuteDeleteAsync(cancellationToken: ct);
+        try
+        {
+            int affectedRows = await dbContext.Reminders
+                .Where(x => x.Id == reminderId && x.UserId == userId && x.Status == ReminderStatus.Pending)
+                .ExecuteDeleteAsync(cancellationToken: ct);
 
-        return deleted > 0;
+            return affectedRows;
+        }
+        catch (Exception ex) when (IsDbFailure(ex))
+        {
+            logger.LogError(ex, "Database delete reminder failed. UserId={UserId}, ReminderId={ReminderId}", userId, reminderId);
+            throw new PersistenceUnavailableException("Database delete reminder failed", ex);
+        }
     }
 
-    public async Task UpdateStatusAsync(Guid id, ReminderStatus status, DateTime? sentAtUtc, CancellationToken ct)
+    public async Task<int> UpdateStatusAsync(Guid id, ReminderStatus status, DateTime? sentAtUtc, CancellationToken ct)
     {
-        await _dbContext.Reminders
-            .Where(x => x.Id == id)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(x => x.Status, status)
-                .SetProperty(x => x.SentAtUtc, sentAtUtc), ct);
+        try
+        {
+            int affectedRows = await dbContext.Reminders
+                .Where(x => x.Id == id && x.Status == ReminderStatus.Pending)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.Status, status)
+                    .SetProperty(x => x.SentAtUtc, sentAtUtc), ct);
+
+            return affectedRows;
+        }
+        catch (Exception ex) when (IsDbFailure(ex))
+        {
+            logger.LogError(ex, "Database update reminder failed. ReminderId={ReminderId}, Status={Status}, SentAtUtc={SentAtUtc}", id, status, sentAtUtc);
+            throw new PersistenceUnavailableException("Database update reminder failed", ex);
+        }
     }
 
     private static ReminderEntity Map(Reminder reminder)
@@ -77,5 +119,15 @@ internal sealed class ReminderRepository : IReminderRepository
             dueAtUtc:   reminderEntity.DueAtUtc,
             status:     reminderEntity.Status
         );
+    }
+
+    private static bool IsDbFailure(Exception ex)
+    {
+        return ex switch
+        {
+            OperationCanceledException => false,
+            DbUpdateException or DbUpdateConcurrencyException or DbException or TimeoutException => true,
+            _ => ex.InnerException is not null && IsDbFailure(ex.InnerException)
+        };
     }
 }

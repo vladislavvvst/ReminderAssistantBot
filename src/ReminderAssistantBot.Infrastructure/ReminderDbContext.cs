@@ -2,12 +2,9 @@
 
 namespace ReminderAssistantBot.Infrastructure;
 
-internal sealed class ReminderDbContext : DbContext
+internal sealed class ReminderDbContext(DbContextOptions<ReminderDbContext> options) : DbContext(options)
 {
     public DbSet<ReminderEntity> Reminders => Set<ReminderEntity>();
-
-    public ReminderDbContext(DbContextOptions<ReminderDbContext> options)
-        : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

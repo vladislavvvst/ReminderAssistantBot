@@ -6,35 +6,26 @@ using ReminderAssistantBot.Telegram.SceneEngine;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class DeleteReminderScene : IScene
+internal sealed class DeleteReminderScene (IReminderService reminderService, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache) : IScene
 {
-    private readonly IReminderQueries _reminderQueries;
-    private readonly IDeleteReminder _deleteReminder;
-    private readonly ISceneRegistry _sceneRegistry;
-    private readonly IUiStateCache _uiStateCache;
-
-    public DeleteReminderScene(IReminderQueries reminderQueries, IDeleteReminder deleteReminder, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
-    {
-        _reminderQueries = reminderQueries;
-        _deleteReminder = deleteReminder;
-        _sceneRegistry = sceneRegistry;
-        _uiStateCache = uiStateCache;
-    }
+    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(5);
 
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
-        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+        await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
-        IReadOnlyList<Reminder> activeReminders = await _reminderQueries.GetActiveAsync(context.Update.UserId, ct);
+        (OperationStatus status, IReadOnlyList<Reminder> activeReminders) = await reminderService.GetActiveAsync(context.Update.UserId, _timeout, ct);
+        if (!await TryHandleStatusAsync(context, status, ct))
+            return;
 
         if (activeReminders.Count == 0)
         {
-            await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ActiveRemindersEmpty,
+            await UiKeyboard.SendAndTrackAsync(context, uiStateCache, CommonUiStrings.Prompts.ActiveRemindersEmpty,
                 ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
             return;
         }
 
-        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ChooseDeleteReminder,
+        await UiKeyboard.SendAndTrackAsync(context, uiStateCache, CommonUiStrings.Prompts.ChooseDeleteReminder,
             ParseMode.Html, CommonUiKeyboards.DeleteReminderKeyboard.Create(activeReminders), ct);
     }
 
@@ -62,13 +53,13 @@ internal sealed class DeleteReminderScene : IScene
             string idText = data[CommonUiStrings.CallbackData.NavDeleteRem.Length..];
             if (Guid.TryParseExact(idText, "N", out Guid reminderId))
             {
-                bool deleted = await _deleteReminder.HandleAsync(userId, reminderId, ct);
+                OperationStatus status = await reminderService.DeleteAsync(userId, reminderId, _timeout,  ct);
+                if (await TryHandleStatusAsync(context, status, ct))
+                {
+                    await context.Bot.SendTextAsync(userId, CommonUiStrings.Prompts.Success, ParseMode.None, null, ct);
+                    await EnterAsync(context, ct);
+                }
 
-                await context.Bot.SendTextAsync(userId, deleted
-                    ? CommonUiStrings.Prompts.Success
-                    : CommonUiStrings.Errors.NotFound, ParseMode.None, null, ct);
-
-                await OnBackAsync(context, ct);
                 return;
             }
         }
@@ -78,7 +69,29 @@ internal sealed class DeleteReminderScene : IScene
 
     private async Task OnBackAsync(UpdateContext context, CancellationToken ct)
     {
-        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
-        await _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+        await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
+        await sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    }
+
+    private async Task<bool> TryHandleStatusAsync(UpdateContext context, OperationStatus status, CancellationToken ct)
+    {
+        if (status is OperationStatus.Success)
+            return true;
+
+        string text = status switch
+        {
+            OperationStatus.Timeout                 => CommonUiStrings.Errors.Timeout,
+            OperationStatus.Unavailable             => CommonUiStrings.Errors.Unavailable,
+            OperationStatus.NotFound                => CommonUiStrings.Errors.NotFound,
+            OperationStatus.Rejected                => CommonUiStrings.Errors.Rejected,
+            OperationStatus.ValidationInputFormat   => CommonUiStrings.Errors.ValidationInputFormat,
+            OperationStatus.ValidationInputDate     => CommonUiStrings.Errors.ValidationInputDate,
+            _                                       => CommonUiStrings.Errors.UnknownError
+        };
+
+        await context.Bot.SendTextAsync(context.Update.UserId, text, ParseMode.None, null, ct);
+        await OnBackAsync(context, ct);
+
+        return false;
     }
 }

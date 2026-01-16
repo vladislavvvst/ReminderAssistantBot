@@ -7,29 +7,22 @@ using System.Text;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class ActiveRemindersScene : IScene
+internal sealed class ActiveRemindersScene(IReminderService reminderService, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache) : IScene
 {
-    private readonly IReminderQueries _reminderQueries;
-    private readonly ISceneRegistry _sceneRegistry;
-    private readonly IUiStateCache _uiStateCache;
-
-    public ActiveRemindersScene(IReminderQueries reminderQueries, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
-    {
-        _reminderQueries = reminderQueries;
-        _sceneRegistry = sceneRegistry;
-        _uiStateCache = uiStateCache;
-    }
+    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(5);
 
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
         long userId = context.Update.UserId;
-        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+        await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
-        IReadOnlyList<Reminder> activeReminders = await _reminderQueries.GetActiveAsync(userId, ct);
+        (OperationStatus status, IReadOnlyList<Reminder> activeReminders) = await reminderService.GetActiveAsync(userId, _timeout, ct);
+        if (!await TryHandleStatusAsync(context, status, ct))
+            return;
 
-        if (activeReminders.Count == 0)
+        if (activeReminders.Count is 0)
         {
-            await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ActiveRemindersEmpty,
+            await UiKeyboard.SendAndTrackAsync(context, uiStateCache, CommonUiStrings.Prompts.ActiveRemindersEmpty,
                 ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
             return;
         }
@@ -48,7 +41,7 @@ internal sealed class ActiveRemindersScene : IScene
             index++;
         }
 
-        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, sb.ToString(),
+        await UiKeyboard.SendAndTrackAsync(context, uiStateCache, sb.ToString(),
             ParseMode.Html, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
     }
 
@@ -75,7 +68,29 @@ internal sealed class ActiveRemindersScene : IScene
 
     private async Task OnBackAsync(UpdateContext context, CancellationToken ct)
     {
-        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
-        await _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+        await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
+        await sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+    }
+
+    private async Task<bool> TryHandleStatusAsync(UpdateContext context, OperationStatus status, CancellationToken ct)
+    {
+        if (status is OperationStatus.Success)
+            return true;
+
+        string text = status switch
+        {
+            OperationStatus.Timeout                 => CommonUiStrings.Errors.Timeout,
+            OperationStatus.Unavailable             => CommonUiStrings.Errors.Unavailable,
+            OperationStatus.NotFound                => CommonUiStrings.Errors.NotFound,
+            OperationStatus.Rejected                => CommonUiStrings.Errors.Rejected,
+            OperationStatus.ValidationInputFormat   => CommonUiStrings.Errors.ValidationInputFormat,
+            OperationStatus.ValidationInputDate     => CommonUiStrings.Errors.ValidationInputDate,
+            _                                       => CommonUiStrings.Errors.UnknownError
+        };
+
+        await context.Bot.SendTextAsync(context.Update.UserId, text, ParseMode.None, null, ct);
+        await OnBackAsync(context, ct);
+
+        return false;
     }
 }

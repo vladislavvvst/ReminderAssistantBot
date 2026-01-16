@@ -4,23 +4,14 @@ using ReminderAssistantBot.Telegram.SceneEngine;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class MainMenuScene : IScene
+internal sealed class MainMenuScene(ISceneRegistry sceneRegistry, IUiStateCache uiStateCache) : IScene
 {
-    private readonly ISceneRegistry _sceneRegistry;
-    private readonly IUiStateCache _uiStateCache;
-
-    public MainMenuScene(ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
-    {
-        _sceneRegistry = sceneRegistry;
-        _uiStateCache = uiStateCache;
-    }
-
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
         BackStackService.Clear(context.Update.UserId);
-        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+        await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
-        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.ChooseAction,
+        await UiKeyboard.SendAndTrackAsync(context, uiStateCache, CommonUiStrings.Prompts.ChooseAction,
             ParseMode.Html, CommonUiKeyboards.MainMenuUiKeyboard.Create(), ct);
     }
 
@@ -44,19 +35,19 @@ internal sealed class MainMenuScene : IScene
 
         if (string.Equals(data, CommonUiStrings.CallbackData.NavAddReminder, StringComparison.Ordinal))
         {
-            await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.AddReminder, ct);
+            await sceneRegistry.NavigateForwardAsync(context, SceneKeys.AddReminder, ct);
             return;
         }
 
         if (string.Equals(data, CommonUiStrings.CallbackData.NavDeleteReminder, StringComparison.Ordinal))
         {
-            await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.DeleteReminder, ct);
+            await sceneRegistry.NavigateForwardAsync(context, SceneKeys.DeleteReminder, ct);
             return;
         }
 
         if (string.Equals(data, CommonUiStrings.CallbackData.NavShowActiveReminders, StringComparison.Ordinal))
         {
-            await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.ActiveReminders, ct);
+            await sceneRegistry.NavigateForwardAsync(context, SceneKeys.ActiveReminders, ct);
             return;
         }
 

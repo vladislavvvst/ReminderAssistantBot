@@ -2,14 +2,8 @@
 
 namespace ReminderAssistantBot.Worker.HostedServices;
 
-internal sealed class ReminderDispatchWorker : BackgroundService
+internal sealed class ReminderDispatchWorker(ILogger<ReminderDispatchWorker> logger, IServiceScopeFactory scopeFactory) : BackgroundService
 {
-    private readonly ILogger<ReminderDispatchWorker> _logger;
-    private readonly IServiceScopeFactory _scopeFactory;
-
-    public ReminderDispatchWorker(ILogger<ReminderDispatchWorker> logger, IServiceScopeFactory scopeFactory)
-        => (_logger, _scopeFactory) = (logger, scopeFactory);
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         PeriodicTimer timer = new(TimeSpan.FromSeconds(10));
@@ -20,9 +14,13 @@ internal sealed class ReminderDispatchWorker : BackgroundService
 
             try
             {
-                using IServiceScope scope = _scopeFactory.CreateScope();
+                using IServiceScope scope = scopeFactory.CreateScope();
                 DispatchDueReminders handler = scope.ServiceProvider.GetRequiredService<DispatchDueReminders>();
-                await handler.HandleAsync(stoppingToken);
+
+                OperationStatus status = await handler.HandleAsync(TimeSpan.FromSeconds(5), stoppingToken);
+                if (status != OperationStatus.Success)
+                    logger.LogError("Dispatch reminder failed: {Status}", status);
+
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -30,7 +28,7 @@ internal sealed class ReminderDispatchWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception");
+                logger.LogError(ex, "Unhandled exception");
             }
         }
     }

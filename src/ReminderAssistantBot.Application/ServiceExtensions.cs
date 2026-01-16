@@ -7,9 +7,7 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<ICreateReminder, CreateReminder>();
-        services.AddScoped<IReminderQueries, ReminderQueries>();
-        services.AddScoped<IDeleteReminder, DeleteReminder>();
+        services.AddScoped<IReminderService, ReminderService>();
         services.AddScoped<DispatchDueReminders>();
         return services;
     }

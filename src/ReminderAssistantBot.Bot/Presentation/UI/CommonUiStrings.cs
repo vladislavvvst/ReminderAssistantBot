@@ -52,5 +52,11 @@ internal static class CommonUiStrings
     {
         public const string UnknownCmd = "🤷‍♂️ Неизвестная команда";
         public const string NotFound = "🤷‍♂️ Такого нету";
+        public const string Timeout = "🤷‍♂️ Превышено время ожидания";
+        public const string Unavailable = "🤷‍♂️ Сервис недоступен";
+        public const string ValidationInputFormat = "🤷‍♂️ Неверный ввод (см. формат ввода)";
+        public const string ValidationInputDate = "🤷‍♂️ Укажите будущее время";
+        public const string UnknownError = "🤷‍♂️ Неизвестная ошибка";
+        public const string Rejected = "🤷‍♂️ Отклонено";
     }
 }

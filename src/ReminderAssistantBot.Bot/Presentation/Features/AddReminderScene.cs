@@ -6,40 +6,32 @@ using System.Globalization;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class AddReminderScene : IScene
+internal sealed class AddReminderScene(IReminderService reminderService, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache) : IScene
 {
-    private readonly ICreateReminder _createReminder;
-    private readonly ISceneRegistry _sceneRegistry;
-    private readonly IUiStateCache _uiStateCache;
-
-    public AddReminderScene(ICreateReminder createReminder, ISceneRegistry sceneRegistry, IUiStateCache uiStateCache)
-    {
-        _createReminder = createReminder;
-        _sceneRegistry = sceneRegistry;
-        _uiStateCache = uiStateCache;
-    }
+    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(5);
 
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
     {
-        await ShowPromptAsync(context, ct);
+        await UiKeyboard.SendAndTrackAsync(context, uiStateCache, CommonUiStrings.Prompts.AddReminder,
+            ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
     }
 
     public async Task OnMessageAsync(UpdateContext context, CancellationToken ct)
     {
-        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
+        await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
         string input = context.Update.Text ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(input))
         {
-            await ShowPromptAsync(context, ct);
+            await EnterAsync(context, ct);
             return;
         }
 
         string[] parts = input.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 3)
         {
-            await ShowPromptAsync(context, ct);
+            await ShowValidationAsync(context, CommonUiStrings.Errors.ValidationInputFormat, ct);
             return;
         }
 
@@ -48,7 +40,7 @@ internal sealed class AddReminderScene : IScene
         if (!DateTime.TryParseExact($"{datePart} {timePart}", "dd.MM.yyyy HH:mm",
             CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime localDateTime))
         {
-            await ShowPromptAsync(context, ct);
+            await ShowValidationAsync(context, CommonUiStrings.Errors.ValidationInputFormat, ct);
             return;
         }
 
@@ -56,10 +48,14 @@ internal sealed class AddReminderScene : IScene
         TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow");
         DateTime dueAtUtc = TimeZoneInfo.ConvertTimeToUtc(localDateTime, timeZone);
 
-        await _createReminder.HandleAsync(context.Update.UserId, message, dueAtUtc, ct);
+        if (dueAtUtc < DateTime.UtcNow)
+        {
+            await ShowValidationAsync(context, CommonUiStrings.Errors.ValidationInputDate, ct);
+            return;
+        }
 
-        await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.Success, ParseMode.None, null, ct);
-        await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.MainMenu, ct);
+        OperationStatus status = await reminderService.CreateAsync(context.Update.UserId, message, dueAtUtc, _timeout, ct);
+        await HandleStatusAsync(context, status, ct);
     }
 
     public async Task OnCallbackAsync(UpdateContext context, CancellationToken ct)
@@ -80,13 +76,37 @@ internal sealed class AddReminderScene : IScene
 
     private async Task OnBackAsync(UpdateContext context, CancellationToken ct)
     {
-        await UiKeyboard.ClearPreviousAsync(context, _uiStateCache, ct);
-        await _sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
+        await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
+        await sceneRegistry.NavigateBackAsync(context, SceneKeys.MainMenu, ct);
     }
 
-    private async Task ShowPromptAsync(UpdateContext context, CancellationToken ct)
+    private async Task ShowValidationAsync(UpdateContext context, string text, CancellationToken ct)
     {
-        await UiKeyboard.SendAndTrackAsync(context, _uiStateCache, CommonUiStrings.Prompts.AddReminder,
-            ParseMode.None, CommonUiKeyboards.BackUiKeyboard.Create(), ct);
+        await context.Bot.SendTextAsync(context.Update.UserId, text, ParseMode.None, null, ct);
+        await EnterAsync(context, ct);
+    }
+
+    private async Task HandleStatusAsync(UpdateContext context, OperationStatus status, CancellationToken ct)
+    {
+        if (status is OperationStatus.Success)
+        {
+            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.Success, ParseMode.None, null, ct);
+            await EnterAsync(context, ct);
+            return;
+        }
+
+        string text = status switch
+        {
+            OperationStatus.Timeout                 => CommonUiStrings.Errors.Timeout,
+            OperationStatus.Unavailable             => CommonUiStrings.Errors.Unavailable,
+            OperationStatus.NotFound                => CommonUiStrings.Errors.NotFound,
+            OperationStatus.Rejected                => CommonUiStrings.Errors.Rejected,
+            OperationStatus.ValidationInputFormat   => CommonUiStrings.Errors.ValidationInputFormat,
+            OperationStatus.ValidationInputDate     => CommonUiStrings.Errors.ValidationInputDate,
+            _                                       => CommonUiStrings.Errors.UnknownError
+        };
+
+        await context.Bot.SendTextAsync(context.Update.UserId, text, ParseMode.None, null, ct);
+        await OnBackAsync(context, ct);
     }
 }
