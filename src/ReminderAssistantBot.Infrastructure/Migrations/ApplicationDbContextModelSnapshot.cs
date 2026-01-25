@@ -10,8 +10,8 @@ using ReminderAssistantBot.Infrastructure;
 
 namespace ReminderAssistantBot.Infrastructure.Migrations
 {
-    [DbContext(typeof(ReminderDbContext))]
-    partial class ReminderDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(ApplicationDbContext))]
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -22,7 +22,7 @@ namespace ReminderAssistantBot.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ReminderAssistantBot.Infrastructure.ReminderEntity", b =>
+            modelBuilder.Entity("ReminderAssistantBot.Infrastructure.Reminders.ReminderEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -50,9 +50,32 @@ namespace ReminderAssistantBot.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.HasIndex("Status", "DueAtUtc");
 
-                    b.ToTable("Reminders");
+                    b.ToTable("Reminders", (string)null);
+                });
+
+            modelBuilder.Entity("ReminderAssistantBot.Infrastructure.UserSettings.UserSettingsEntity", b =>
+                {
+                    b.Property<long>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("UserId"));
+
+                    b.Property<string>("TimezoneKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserSettings", (string)null);
                 });
 #pragma warning restore 612, 618
         }

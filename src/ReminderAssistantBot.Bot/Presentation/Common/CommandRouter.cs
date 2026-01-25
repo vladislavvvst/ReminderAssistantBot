@@ -21,20 +21,22 @@ internal sealed class CommandRouter : ICommandRouter
 
         string cmd = text.Split(' ', 2)[0];
 
-        if (string.Equals(cmd, CommonUiStrings.Commands.Start,  StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(cmd, CommonUiStrings.Commands.Menu,   StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(cmd, CommonUiStrings.Commands.Cancel, StringComparison.OrdinalIgnoreCase))
+        switch (cmd)
         {
-            await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.MainMenu, ct);
-            return true;
-        }
+            case CommonUiStrings.Commands.Start or CommonUiStrings.Commands.Menu or CommonUiStrings.Commands.Cancel:
+                await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.MainMenu, ct);
+                return true;
 
-        if (string.Equals(cmd, CommonUiStrings.Commands.About, StringComparison.OrdinalIgnoreCase))
-        {
-            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.AboutBot, ParseMode.Html, null, ct);
-            return true;
-        }
+            case CommonUiStrings.Commands.About:
+                await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.AboutBot, ParseMode.Html, null, ct);
+                return true;
 
-        return false;
+            case CommonUiStrings.Commands.Timezone:
+                await _sceneRegistry.NavigateForwardAsync(context, SceneKeys.SetTimezone, ct);
+                return true;
+
+            default:
+                return false;
+        }
     }
 }

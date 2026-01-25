@@ -1,6 +1,6 @@
 ﻿using ReminderAssistantBot.Domain;
 
-namespace ReminderAssistantBot.Infrastructure;
+namespace ReminderAssistantBot.Infrastructure.Reminders;
 
 internal sealed class ReminderEntity
 {

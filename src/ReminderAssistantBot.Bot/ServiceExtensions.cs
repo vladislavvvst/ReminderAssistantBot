@@ -28,6 +28,7 @@ public static class ServiceExtensions
         services.AddScoped<AddReminderScene>();
         services.AddScoped<ActiveRemindersScene>();
         services.AddScoped<DeleteReminderScene>();
+        services.AddScoped<SetTimezoneScene>();
 
         return services;
     }

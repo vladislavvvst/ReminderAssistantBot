@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ReminderAssistantBot.Application.Abstractions;
+using ReminderAssistantBot.Infrastructure.Reminders;
 
 namespace ReminderAssistantBot.Infrastructure;
 
@@ -9,9 +10,9 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
-        services.AddDbContext<ReminderDbContext>(options =>
+        services.AddDbContext<ApplicationDbContext>(options =>
         {
-            options.UseNpgsql(config.GetConnectionString(nameof(ReminderDbContext)));
+            options.UseNpgsql(config.GetConnectionString(nameof(ApplicationDbContext)));
         });
         services.AddScoped<IReminderRepository, ReminderRepository>();
         return services;

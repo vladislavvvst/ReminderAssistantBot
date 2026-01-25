@@ -35,7 +35,7 @@ public sealed class DispatchDueReminders(IReminderRepository repository, IRemind
 
             try
             {
-                await repository.UpdateStatusAsync(reminder.Id, reminder.Status, DateTime.UtcNow, ctsUpdateTimeout.Token);
+                await repository.UpdateStatusAsync(reminder.Id, reminder.Status, reminder.SentAtUtc, ctsUpdateTimeout.Token);
             }
             catch (OperationCanceledException) when (ctsUpdateTimeout.IsCancellationRequested && !ct.IsCancellationRequested)
             {

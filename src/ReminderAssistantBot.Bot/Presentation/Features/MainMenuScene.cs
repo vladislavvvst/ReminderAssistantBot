@@ -27,31 +27,28 @@ internal sealed class MainMenuScene(ISceneRegistry sceneRegistry, IUiStateCache 
         if (!string.IsNullOrWhiteSpace(context.Update.CallbackId))
             await context.Bot.AnswerCallbackAsync(context.Update.CallbackId, ct);
 
-        if (string.Equals(data, CommonUiStrings.CallbackData.NavBack, StringComparison.Ordinal))
+        switch (data)
         {
-            await OnBackAsync(context, ct);
-            return;
-        }
+            case CommonUiStrings.CallbackData.NavBack:
+                await OnBackAsync(context, ct);
+                return;
 
-        if (string.Equals(data, CommonUiStrings.CallbackData.NavAddReminder, StringComparison.Ordinal))
-        {
-            await sceneRegistry.NavigateForwardAsync(context, SceneKeys.AddReminder, ct);
-            return;
-        }
+            case CommonUiStrings.CallbackData.NavAddReminder:
+                await sceneRegistry.NavigateForwardAsync(context, SceneKeys.AddReminder, ct);
+                return;
 
-        if (string.Equals(data, CommonUiStrings.CallbackData.NavDeleteReminder, StringComparison.Ordinal))
-        {
-            await sceneRegistry.NavigateForwardAsync(context, SceneKeys.DeleteReminder, ct);
-            return;
-        }
+            case CommonUiStrings.CallbackData.NavDeleteReminder:
+                await sceneRegistry.NavigateForwardAsync(context, SceneKeys.DeleteReminder, ct);
+                return;
 
-        if (string.Equals(data, CommonUiStrings.CallbackData.NavShowActiveReminders, StringComparison.Ordinal))
-        {
-            await sceneRegistry.NavigateForwardAsync(context, SceneKeys.ActiveReminders, ct);
-            return;
-        }
+            case CommonUiStrings.CallbackData.NavShowActiveReminders:
+                await sceneRegistry.NavigateForwardAsync(context, SceneKeys.ActiveReminders, ct);
+                return;
 
-        await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Errors.UnknownCmd, ParseMode.None, null, ct);
+            default:
+                await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Errors.UnknownCmd, ParseMode.None, null, ct);
+                return;
+        }
     }
 
     private Task OnBackAsync(UpdateContext context, CancellationToken ct) => EnterAsync(context, ct);

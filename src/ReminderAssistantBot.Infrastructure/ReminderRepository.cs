@@ -2,11 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReminderAssistantBot.Application.Abstractions;
 using ReminderAssistantBot.Domain;
+using ReminderAssistantBot.Infrastructure.Reminders;
+using ReminderAssistantBot.Infrastructure.UserSettings;
 using System.Data.Common;
 
 namespace ReminderAssistantBot.Infrastructure;
 
-internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, ReminderDbContext dbContext) : IReminderRepository
+internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, ApplicationDbContext dbContext) : IReminderRepository
 {
     public async Task AddAsync(Reminder reminder, CancellationToken ct)
     {
@@ -83,7 +85,7 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, Rem
         {
             int affectedRows = await dbContext.Reminders
                 .Where(x => x.Id == id && x.Status == ReminderStatus.Pending)
-                .ExecuteUpdateAsync(setters => setters
+                .ExecuteUpdateAsync(s => s
                     .SetProperty(x => x.Status, status)
                     .SetProperty(x => x.SentAtUtc, sentAtUtc), ct);
 
@@ -96,6 +98,44 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, Rem
         }
     }
 
+    public async Task AddOrUpdateTimezoneAsync(long userId, string timezoneKey, CancellationToken ct)
+    {
+        try
+        {
+            UserSettingsEntity? entity = await dbContext.UserSettings
+                .FirstOrDefaultAsync(x => x.UserId == userId, ct);
+
+            if (entity is null)
+                await dbContext.UserSettings.AddAsync(Map(userId, timezoneKey), ct);
+            else
+                entity.TimezoneKey = timezoneKey;
+
+            await dbContext.SaveChangesAsync(ct);
+        }
+        catch (Exception ex) when (IsDbFailure(ex))
+        {
+            logger.LogError(ex, "Database add or update timezone key failed. UserId={UserId}", userId);
+            throw new PersistenceUnavailableException("Database write timezone key failed", ex);
+        }
+    }
+
+    public async Task<string> GetTimezoneAsync(long userId, TimeSpan timeout, CancellationToken ct)
+    {
+        try
+        {
+            return await dbContext.UserSettings
+                .AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .Select(x => x.TimezoneKey)
+                .FirstOrDefaultAsync(ct) ?? string.Empty;
+        }
+        catch (Exception ex) when (IsDbFailure(ex))
+        {
+            logger.LogError(ex, "Database get timezone key failed. UserId={UserId}", userId);
+            throw new PersistenceUnavailableException("Database get timezone key failed", ex);
+        }
+    }
+
     private static ReminderEntity Map(Reminder reminder)
     {
         return new ReminderEntity
@@ -104,6 +144,7 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, Rem
             UserId       = reminder.UserId,
             Message      = reminder.Message,
             DueAtUtc     = reminder.DueAtUtc,
+            SentAtUtc    = reminder.SentAtUtc,
             Status       = reminder.Status,
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -117,8 +158,19 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, Rem
             userId:     reminderEntity.UserId,
             message:    reminderEntity.Message,
             dueAtUtc:   reminderEntity.DueAtUtc,
+            sentAtUtc:  reminderEntity.SentAtUtc,
             status:     reminderEntity.Status
         );
+    }
+
+    private static UserSettingsEntity Map(long userId, string timezoneKey)
+    {
+        return new UserSettingsEntity
+        {
+            UserId          = userId,
+            TimezoneKey     = timezoneKey,
+            UpdatedAtUtc    = DateTime.UtcNow
+        };
     }
 
     private static bool IsDbFailure(Exception ex)

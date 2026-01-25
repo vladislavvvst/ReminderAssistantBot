@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using NodaTime;
 using ReminderAssistantBot.Application.Reminders;
 using ReminderAssistantBot.Bot.Options;
 using ReminderAssistantBot.Bot.Presentation.Common;
@@ -21,11 +22,12 @@ internal sealed class AddReminderScene(IReminderService reminderService, ISceneR
     {
         await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
+        long userId = context.Update.UserId;
         string input = context.Update.Text ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(input))
         {
-            await EnterAsync(context, ct);
+            await ShowValidationAsync(context, CommonUiStrings.Errors.ValidationInputFormat, ct);
             return;
         }
 
@@ -45,9 +47,16 @@ internal sealed class AddReminderScene(IReminderService reminderService, ISceneR
             return;
         }
 
-        // TODO: хард код таймзоны. Нужно спросить пользователя где он находится чтобы корректно парсить время
-        TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow");
-        DateTime dueAtUtc = TimeZoneInfo.ConvertTimeToUtc(localDateTime, timeZone);
+        (OperationStatus tzStatus, string tzId) = await reminderService.GetTimezoneAsync(userId, options.Value.TimeoutOperation, ct);
+        if (!SceneUiUtils.TryHandleStatus(tzStatus, out string errTzMessage))
+        {
+            await SceneUiUtils.SendErrorAsync(context, errTzMessage, ct);
+            await OnBackAsync(context, ct);
+            return;
+        }
+
+        DateTimeZone zone = SceneUiUtils.ResolveTimezone(tzId);
+        DateTime dueAtUtc = SceneUiUtils.ToUtc(localDateTime, zone);
 
         if (dueAtUtc < DateTime.UtcNow)
         {
@@ -56,7 +65,16 @@ internal sealed class AddReminderScene(IReminderService reminderService, ISceneR
         }
 
         OperationStatus status = await reminderService.CreateAsync(context.Update.UserId, message, dueAtUtc, options.Value.TimeoutOperation, ct);
-        await HandleStatusAsync(context, status, ct);
+        if (SceneUiUtils.TryHandleStatus(status, out string errCreateMessage))
+        {
+            await SceneUiUtils.SendSuccessAsync(context, ct);
+            await EnterAsync(context, ct);
+        }
+        else
+        {
+            await SceneUiUtils.SendErrorAsync(context, errCreateMessage, ct);
+            await OnBackAsync(context, ct);
+        }
     }
 
     public async Task OnCallbackAsync(UpdateContext context, CancellationToken ct)
@@ -66,7 +84,7 @@ internal sealed class AddReminderScene(IReminderService reminderService, ISceneR
         if (!string.IsNullOrWhiteSpace(context.Update.CallbackId))
             await context.Bot.AnswerCallbackAsync(context.Update.CallbackId, ct);
 
-        if (string.Equals(data, CommonUiStrings.CallbackData.NavBack, StringComparison.Ordinal))
+        if (data == CommonUiStrings.CallbackData.NavBack)
         {
             await OnBackAsync(context, ct);
             return;
@@ -85,29 +103,5 @@ internal sealed class AddReminderScene(IReminderService reminderService, ISceneR
     {
         await context.Bot.SendTextAsync(context.Update.UserId, text, ParseMode.None, null, ct);
         await EnterAsync(context, ct);
-    }
-
-    private async Task HandleStatusAsync(UpdateContext context, OperationStatus status, CancellationToken ct)
-    {
-        if (status is OperationStatus.Success)
-        {
-            await context.Bot.SendTextAsync(context.Update.UserId, CommonUiStrings.Prompts.Success, ParseMode.None, null, ct);
-            await EnterAsync(context, ct);
-            return;
-        }
-
-        string text = status switch
-        {
-            OperationStatus.Timeout                 => CommonUiStrings.Errors.Timeout,
-            OperationStatus.Unavailable             => CommonUiStrings.Errors.Unavailable,
-            OperationStatus.NotFound                => CommonUiStrings.Errors.NotFound,
-            OperationStatus.Rejected                => CommonUiStrings.Errors.Rejected,
-            OperationStatus.ValidationInputFormat   => CommonUiStrings.Errors.ValidationInputFormat,
-            OperationStatus.ValidationInputDate     => CommonUiStrings.Errors.ValidationInputDate,
-            _                                       => CommonUiStrings.Errors.UnknownError
-        };
-
-        await context.Bot.SendTextAsync(context.Update.UserId, text, ParseMode.None, null, ct);
-        await OnBackAsync(context, ct);
     }
 }

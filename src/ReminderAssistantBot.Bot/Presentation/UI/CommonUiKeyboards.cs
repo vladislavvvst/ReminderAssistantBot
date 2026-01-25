@@ -1,4 +1,6 @@
-﻿using ReminderAssistantBot.Domain;
+using NodaTime;
+using ReminderAssistantBot.Bot.Presentation.Common;
+using ReminderAssistantBot.Domain;
 using ReminderAssistantBot.Telegram.SceneEngine;
 
 namespace ReminderAssistantBot.Bot.Presentation.UI;
@@ -35,16 +37,15 @@ internal static class CommonUiKeyboards
 
     public static class DeleteReminderKeyboard
     {
-        public static BotInlineKeyboard Create(IReadOnlyList<Reminder> reminders)
+        public static BotInlineKeyboard Create(IReadOnlyList<Reminder> reminders, string tzId)
         {
-            // TODO: хард код таймзоны. Нужно спросить пользователя где он находится чтобы корректно парсить время
-            TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow");
+            DateTimeZone timeZone = SceneUiUtils.ResolveTimezone(tzId);
 
             IReadOnlyList<IReadOnlyList<BotButton>> rows = reminders
                 .Select(r =>
                 {
-                    DateTime local = TimeZoneInfo.ConvertTimeFromUtc(r.DueAtUtc, timeZone);
-                    string text = $"{local:dd.MM.yyyy HH:mm} — {r.Message}";
+                    string local = SceneUiUtils.FormatUtc(r.DueAtUtc, timeZone);
+                    string text = $"{local} — {r.Message}";
                     string title = text.Length > 40 ? text[..40] + "…" : text;
                     string data = $"{CommonUiStrings.CallbackData.NavDeleteRem}{r.Id:N}";
                     return (IReadOnlyList<BotButton>)[ new BotButton(title, data) ];
@@ -52,6 +53,21 @@ internal static class CommonUiKeyboards
                 .ToList();
 
             rows = rows.Append([ new BotButton(CommonUiStrings.Buttons.Back, CommonUiStrings.CallbackData.NavBack) ]).ToList();
+            return new BotInlineKeyboard(rows);
+        }
+    }
+
+    public static class SetTimezoneKeyboard
+    {
+        public static BotInlineKeyboard Create()
+        {
+            IReadOnlyList<IReadOnlyList<BotButton>> rows =
+            [
+                [ new BotButton("Europe/Moscow", "Europe/Moscow") ],
+                [ new BotButton("Europe/Amsterdam", "Europe/Amsterdam") ],
+                [ new BotButton(CommonUiStrings.Buttons.Back, CommonUiStrings.CallbackData.NavBack) ]
+            ];
+
             return new BotInlineKeyboard(rows);
         }
     }

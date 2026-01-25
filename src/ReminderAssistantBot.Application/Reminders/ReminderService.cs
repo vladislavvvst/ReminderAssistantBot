@@ -86,4 +86,48 @@ internal sealed class ReminderService(IReminderRepository repository, ILogger<Re
             return (OperationStatus.Unavailable, []);
         }
     }
+
+    public async Task<OperationStatus> AddOrUpdateTimezoneAsync(long userId, string timezoneKey, TimeSpan timeout, CancellationToken ct)
+    {
+        using CancellationTokenSource ctsTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        ctsTimeout.CancelAfter(timeout);
+
+        // Тут нужно сделать AddOrUpdateTimezoneAsync
+
+        try
+        {
+            await repository.AddOrUpdateTimezoneAsync(userId, timezoneKey, ctsTimeout.Token);
+            return OperationStatus.Success;
+        }
+        catch (OperationCanceledException) when (ctsTimeout.IsCancellationRequested && !ct.IsCancellationRequested)
+        {
+            logger.LogError("Reminder add or update timezone timeout. UserId={UserId}", userId);
+            return OperationStatus.Timeout;
+        }
+        catch (PersistenceUnavailableException)
+        {
+            return OperationStatus.Unavailable;
+        }
+    }
+
+    public async Task<(OperationStatus, string)> GetTimezoneAsync(long userId, TimeSpan timeout, CancellationToken ct)
+    {
+        using CancellationTokenSource ctsTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        ctsTimeout.CancelAfter(timeout);
+
+        try
+        {
+            string timezoneKey = await repository.GetTimezoneAsync(userId, timeout, ctsTimeout.Token);
+            return string.IsNullOrWhiteSpace(timezoneKey) ? (OperationStatus.NotFound, string.Empty) : (OperationStatus.Success, timezoneKey);
+        }
+        catch (OperationCanceledException) when (ctsTimeout.IsCancellationRequested && !ct.IsCancellationRequested)
+        {
+            logger.LogError("Reminder get timezone timeout. UserId={UserId}", userId);
+            return (OperationStatus.Timeout, string.Empty);
+        }
+        catch (PersistenceUnavailableException)
+        {
+            return (OperationStatus.Unavailable, string.Empty);
+        }
+    }
 }

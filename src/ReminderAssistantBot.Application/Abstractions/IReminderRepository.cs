@@ -9,4 +9,6 @@ public interface IReminderRepository
     Task<IReadOnlyList<Reminder>> GetActiveAsync(long userId, CancellationToken ct);
     Task<int> DeleteAsync(long userId, Guid reminderId, CancellationToken ct);
     Task<int> UpdateStatusAsync(Guid id, ReminderStatus status, DateTime? sentAtUtc, CancellationToken ct);
+    Task AddOrUpdateTimezoneAsync(long userId, string timezoneKey, CancellationToken ct);
+    Task<string> GetTimezoneAsync(long userId, TimeSpan timeout, CancellationToken ct);
 }

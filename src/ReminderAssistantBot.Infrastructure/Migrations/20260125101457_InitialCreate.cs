@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -28,10 +29,29 @@ namespace ReminderAssistantBot.Infrastructure.Migrations
                     table.PrimaryKey("PK_Reminders", x => x.Id);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "UserSettings",
+                columns: table => new
+                {
+                    UserId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TimezoneKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserSettings", x => x.UserId);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Reminders_Status_DueAtUtc",
                 table: "Reminders",
                 columns: new[] { "Status", "DueAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reminders_UserId",
+                table: "Reminders",
+                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -39,6 +59,9 @@ namespace ReminderAssistantBot.Infrastructure.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Reminders");
+
+            migrationBuilder.DropTable(
+                name: "UserSettings");
         }
     }
 }

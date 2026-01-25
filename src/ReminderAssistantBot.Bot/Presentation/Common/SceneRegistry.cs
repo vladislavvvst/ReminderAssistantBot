@@ -17,7 +17,8 @@ internal sealed class SceneRegistry : ISceneRegistry
             [SceneKeys.MainMenu]        = typeof(MainMenuScene),
             [SceneKeys.AddReminder]     = typeof(AddReminderScene),
             [SceneKeys.ActiveReminders] = typeof(ActiveRemindersScene),
-            [SceneKeys.DeleteReminder]  = typeof(DeleteReminderScene)
+            [SceneKeys.DeleteReminder]  = typeof(DeleteReminderScene),
+            [SceneKeys.SetTimezone]     = typeof(SetTimezoneScene)
         };
     }
 

@@ -17,6 +17,7 @@ internal static class CommonUiStrings
         public const string Menu = "/menu";
         public const string About = "/about";
         public const string Cancel = "/cancel";
+        public const string Timezone = "/timezone";
     }
 
     internal static class Buttons
@@ -24,6 +25,7 @@ internal static class CommonUiStrings
         public const string BotStart = "Запустить бота";
         public const string BotMenu = "Открыть меню";
         public const string BotAbout = "О боте";
+        public const string BotTimezone = "Установить таймзону";
 
         public const string Back = "⬅️ Назад";
         public const string AddReminder = "➕ Добавить напоминание";
@@ -35,10 +37,11 @@ internal static class CommonUiStrings
     {
         public const string ChooseAction = "<b>Выберите действие:</b>";
         public const string ActiveReminders = "<b>Активные:</b>";
-        public const string ActiveRemindersEmpty = "Активных напоминаний нет";
+        public const string ActiveRemindersEmpty = "<b>Активных напоминаний нет</b>";
         public const string ChooseDeleteReminder = "<b>Выберите напоминание для удаления:</b>";
         public const string AddReminder = "⏰ Установите напоминание\nФормат ввода:\n01.01.2026 00:00 Новый Год";
-        public const string Success = "✔ Успех";
+        public const string Success = "<b>✔ Успех</b>";
+        public const string SetTimezone = "<b>Выберите таймзону:</b>";
         public const string AboutBot =
             "<b>Reminder Assistant Bot</b> — это ассистент напоминаний. " +
             "Он помогает создавать, просматривать и управлять задачами, с помощью диалоговых сцен и удобной навигации.\n" +
@@ -46,6 +49,8 @@ internal static class CommonUiStrings
             "Он хранит только Ваш chatId и текст напоминаний — исключительно для работы функционала. " +
             "Пожалуйста, не добавляйте в напоминания пароли, данные банковских карт, паспортные данные, медицинскую или другую чувствительную информацию.\n" +
             "По запросу пользователя данные могут быть удалены через кнопку «Удалить напоминание».";
+
+        public static string CurrentTimezone(string tz) => $"Текущая: 🌍{tz}";
     }
 
     internal static class Errors
