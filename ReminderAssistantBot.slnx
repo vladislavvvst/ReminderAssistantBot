@@ -1,0 +1,23 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/docker/">
+    <File Path="docker/docker-compose.dev.yml" />
+    <File Path="docker/docker-compose.yml" />
+    <File Path="docker/Worker.Dockerfile" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ReminderAssistantBot.Application/ReminderAssistantBot.Application.csproj" />
+    <Project Path="src/ReminderAssistantBot.Bot/ReminderAssistantBot.Bot.csproj" />
+    <Project Path="src/ReminderAssistantBot.Domain/ReminderAssistantBot.Domain.csproj" />
+    <Project Path="src/ReminderAssistantBot.Infrastructure/ReminderAssistantBot.Infrastructure.csproj" />
+    <Project Path="src/ReminderAssistantBot.Telegram/ReminderAssistantBot.Telegram.csproj" />
+    <Project Path="src/ReminderAssistantBot.Worker/ReminderAssistantBot.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReminderAssistantBot.Telegram.UnitTests/ReminderAssistantBot.Telegram.UnitTests.csproj" />
+  </Folder>
+</Solution>
