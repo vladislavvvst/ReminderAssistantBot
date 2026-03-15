@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using ReminderAssistantBot.Infrastructure.Reminders;
 
 namespace ReminderAssistantBot.Infrastructure;
 

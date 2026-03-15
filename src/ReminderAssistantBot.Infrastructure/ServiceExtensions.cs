@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ReminderAssistantBot.Application.Abstractions;
-using ReminderAssistantBot.Infrastructure.Reminders;
 
 namespace ReminderAssistantBot.Infrastructure;
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using ReminderAssistantBot.Application.Reminders;
 using ReminderAssistantBot.Bot.Options;
 using ReminderAssistantBot.Bot.Presentation.Common;
@@ -16,7 +16,7 @@ internal sealed class SetTimezoneScene(IReminderService reminderService, ISceneR
         await UiKeyboard.ClearPreviousAsync(context, uiStateCache, ct);
 
         (OperationStatus tzStatus, string tzId) = await reminderService.GetTimezoneAsync(context.Update.UserId, options.Value.TimeoutOperation, ct);
-        if (!SceneUiUtils.TryHandleStatus(tzStatus, out string errTzMessage))
+        if (!SceneUiUtils.TryResolveTimezone(tzStatus, tzId, out var zone, out string errTzMessage))
         {
             await SceneUiUtils.SendErrorAsync(context, errTzMessage, ct);
             await OnBackAsync(context, ct);
@@ -24,7 +24,7 @@ internal sealed class SetTimezoneScene(IReminderService reminderService, ISceneR
         }
 
         await UiKeyboard.SendAndTrackAsync(context, uiStateCache,
-            $"{CommonUiStrings.Prompts.SetTimezone}\n{CommonUiStrings.Prompts.CurrentTimezone(tzId)}",
+            $"{CommonUiStrings.Prompts.SetTimezone}\n{CommonUiStrings.Prompts.CurrentTimezone(zone.Id)}",
             ParseMode.Html, CommonUiKeyboards.SetTimezoneKeyboard.Create(), ct);
     }
 

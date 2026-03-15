@@ -20,6 +20,20 @@ internal static class SceneUiUtils
         return DateTimeZoneProviders.Tzdb[tzId];
     }
 
+    public static bool TryResolveTimezone(OperationStatus status, string? tzId, out DateTimeZone zone, out string errorMessage)
+    {
+        if (status is OperationStatus.Success or OperationStatus.NotFound)
+        {
+            zone = ResolveTimezone(tzId);
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        zone = ResolveTimezone(null);
+        _ = TryHandleStatus(status, out errorMessage);
+        return false;
+    }
+
     public static string FormatUtc(DateTime utcDateTime, DateTimeZone zone)
     {
         Instant instant = Instant.FromDateTimeUtc(utcDateTime);

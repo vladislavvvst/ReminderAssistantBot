@@ -36,14 +36,12 @@ internal sealed class ActiveRemindersScene(IReminderService reminderService, ISc
         }
 
         (OperationStatus tzStatus, string tzId) = await reminderService.GetTimezoneAsync(userId, options.Value.TimeoutOperation, ct);
-        if (!SceneUiUtils.TryHandleStatus(tzStatus, out string errTzMessage))
+        if (!SceneUiUtils.TryResolveTimezone(tzStatus, tzId, out DateTimeZone zone, out string errTzMessage))
         {
             await SceneUiUtils.SendErrorAsync(context, errTzMessage, ct);
             await OnBackAsync(context, ct);
             return;
         }
-
-        DateTimeZone zone = SceneUiUtils.ResolveTimezone(tzId);
 
         StringBuilder sb = new();
         sb.AppendLine(CommonUiStrings.Prompts.ActiveReminders);

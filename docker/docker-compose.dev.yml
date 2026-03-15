@@ -29,7 +29,7 @@ services:
     environment:
       DOTNET_ENVIRONMENT: Development
       Telegram__Token: ${TELEGRAM_TOKEN}
-      ConnectionStrings__ReminderDbContext: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__ApplicationDbContext: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
 
 volumes:
   reminder_pg:

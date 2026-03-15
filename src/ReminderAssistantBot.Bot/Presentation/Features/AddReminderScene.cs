@@ -48,14 +48,13 @@ internal sealed class AddReminderScene(IReminderService reminderService, ISceneR
         }
 
         (OperationStatus tzStatus, string tzId) = await reminderService.GetTimezoneAsync(userId, options.Value.TimeoutOperation, ct);
-        if (!SceneUiUtils.TryHandleStatus(tzStatus, out string errTzMessage))
+        if (!SceneUiUtils.TryResolveTimezone(tzStatus, tzId, out DateTimeZone zone, out string errTzMessage))
         {
             await SceneUiUtils.SendErrorAsync(context, errTzMessage, ct);
             await OnBackAsync(context, ct);
             return;
         }
 
-        DateTimeZone zone = SceneUiUtils.ResolveTimezone(tzId);
         DateTime dueAtUtc = SceneUiUtils.ToUtc(localDateTime, zone);
 
         if (dueAtUtc < DateTime.UtcNow)

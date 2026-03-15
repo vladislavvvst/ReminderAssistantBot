@@ -10,6 +10,8 @@ namespace ReminderAssistantBot.Infrastructure;
 
 internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, ApplicationDbContext dbContext) : IReminderRepository
 {
+    private const int MaxClaimBatchSize = 500;
+
     public async Task AddAsync(Reminder reminder, CancellationToken ct)
     {
         try
@@ -24,22 +26,56 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, App
         }
     }
 
-    public async Task<IReadOnlyList<Reminder>> GetDueAsync(DateTime utcNow, CancellationToken ct)
+    public async Task<IReadOnlyList<ClaimedReminder>> ClaimDueAsync(DateTime utcNow, TimeSpan leaseDuration, int batchSize, CancellationToken ct)
     {
+        if (leaseDuration <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(leaseDuration), "Lease duration must be positive");
+
+        if (batchSize <= 0)
+            return [];
+
+        int takeBatchSize = Math.Min(batchSize, MaxClaimBatchSize);
+        DateTime leaseUntilUtc = utcNow.Add(leaseDuration);
+
         try
         {
-            List<ReminderEntity> entities = await dbContext.Reminders
+            List<CandidateReminder> candidates = await dbContext.Reminders
                 .AsNoTracking()
-                .Where(x => x.Status == ReminderStatus.Pending && x.DueAtUtc <= utcNow)
+                .Where(x => x.DueAtUtc <= utcNow &&
+                            (x.Status == ReminderStatus.Pending ||
+                             (x.Status == ReminderStatus.Processing && x.LeaseUntilUtc < utcNow)))
                 .OrderBy(x => x.DueAtUtc)
-                .ToListAsync(cancellationToken: ct);
+                .Take(takeBatchSize)
+                .Select(x => new CandidateReminder(x.Id, x.UserId, x.Message))
+                .ToListAsync(ct);
 
-            return entities.Select(Map).ToList();
+            List<ClaimedReminder> claimed = new(candidates.Count);
+
+            foreach (CandidateReminder candidate in candidates)
+            {
+                Guid leaseToken = Guid.NewGuid();
+
+                int affectedRows = await dbContext.Reminders
+                    .Where(x => x.Id == candidate.Id
+                        && x.DueAtUtc <= utcNow
+                        && (x.Status == ReminderStatus.Pending
+                            || (x.Status == ReminderStatus.Processing && x.LeaseUntilUtc < utcNow)))
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(x => x.Status, ReminderStatus.Processing)
+                        .SetProperty(x => x.LeaseToken, leaseToken)
+                        .SetProperty(x => x.LeaseUntilUtc, leaseUntilUtc)
+                        .SetProperty(x => x.AttemptCount, x => x.AttemptCount + 1), ct);
+
+                if (affectedRows == 1)
+                    claimed.Add(new ClaimedReminder(candidate.Id, candidate.UserId, candidate.Message, leaseToken));
+            }
+
+            return claimed;
         }
         catch (Exception ex) when (IsDbFailure(ex))
         {
-            logger.LogError(ex, "Database get due reminders failed");
-            throw new PersistenceUnavailableException("Database get due reminders failed", ex);
+            logger.LogError(ex, "Database claim due reminders failed");
+            throw new PersistenceUnavailableException("Database claim due reminders failed", ex);
         }
     }
 
@@ -79,22 +115,24 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, App
         }
     }
 
-    public async Task<int> UpdateStatusAsync(Guid id, ReminderStatus status, DateTime? sentAtUtc, CancellationToken ct)
+    public async Task<int> MarkSentAsync(Guid id, Guid leaseToken, DateTime sentAtUtc, CancellationToken ct)
     {
         try
         {
-            int affectedRows = await dbContext.Reminders
-                .Where(x => x.Id == id && x.Status == ReminderStatus.Pending)
+            return await dbContext.Reminders
+                .Where(x => x.Id == id
+                    && x.Status == ReminderStatus.Processing
+                    && x.LeaseToken == leaseToken)
                 .ExecuteUpdateAsync(s => s
-                    .SetProperty(x => x.Status, status)
-                    .SetProperty(x => x.SentAtUtc, sentAtUtc), ct);
-
-            return affectedRows;
+                    .SetProperty(x => x.Status, ReminderStatus.Sent)
+                    .SetProperty(x => x.SentAtUtc, sentAtUtc)
+                    .SetProperty(x => x.LeaseToken, (Guid?)null)
+                    .SetProperty(x => x.LeaseUntilUtc, (DateTime?)null), ct);
         }
         catch (Exception ex) when (IsDbFailure(ex))
         {
-            logger.LogError(ex, "Database update reminder failed. ReminderId={ReminderId}, Status={Status}, SentAtUtc={SentAtUtc}", id, status, sentAtUtc);
-            throw new PersistenceUnavailableException("Database update reminder failed", ex);
+            logger.LogError(ex, "Database mark sent reminder failed. ReminderId={ReminderId}, LeaseToken={LeaseToken}", id, leaseToken);
+            throw new PersistenceUnavailableException("Database mark sent reminder failed", ex);
         }
     }
 
@@ -119,7 +157,7 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, App
         }
     }
 
-    public async Task<string> GetTimezoneAsync(long userId, TimeSpan timeout, CancellationToken ct)
+    public async Task<string> GetTimezoneAsync(long userId, CancellationToken ct)
     {
         try
         {
@@ -140,13 +178,16 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, App
     {
         return new ReminderEntity
         {
-            Id           = reminder.Id,
-            UserId       = reminder.UserId,
-            Message      = reminder.Message,
-            DueAtUtc     = reminder.DueAtUtc,
-            SentAtUtc    = reminder.SentAtUtc,
-            Status       = reminder.Status,
-            CreatedAtUtc = DateTime.UtcNow
+            Id = reminder.Id,
+            UserId = reminder.UserId,
+            Message = reminder.Message,
+            DueAtUtc = reminder.DueAtUtc,
+            SentAtUtc = reminder.SentAtUtc,
+            Status = reminder.Status,
+            CreatedAtUtc = DateTime.UtcNow,
+            LeaseToken = null,
+            LeaseUntilUtc = null,
+            AttemptCount = 0
         };
     }
 
@@ -154,12 +195,12 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, App
     {
         return Reminder.Rehydrate
         (
-            id:         reminderEntity.Id,
-            userId:     reminderEntity.UserId,
-            message:    reminderEntity.Message,
-            dueAtUtc:   reminderEntity.DueAtUtc,
-            sentAtUtc:  reminderEntity.SentAtUtc,
-            status:     reminderEntity.Status
+            id: reminderEntity.Id,
+            userId: reminderEntity.UserId,
+            message: reminderEntity.Message,
+            dueAtUtc: reminderEntity.DueAtUtc,
+            sentAtUtc: reminderEntity.SentAtUtc,
+            status: reminderEntity.Status
         );
     }
 
@@ -167,9 +208,9 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, App
     {
         return new UserSettingsEntity
         {
-            UserId          = userId,
-            TimezoneKey     = timezoneKey,
-            UpdatedAtUtc    = DateTime.UtcNow
+            UserId = userId,
+            TimezoneKey = timezoneKey,
+            UpdatedAtUtc = DateTime.UtcNow
         };
     }
 
@@ -182,4 +223,6 @@ internal sealed class ReminderRepository(ILogger<ReminderRepository> logger, App
             _ => ex.InnerException is not null && IsDbFailure(ex.InnerException)
         };
     }
+
+    private sealed record CandidateReminder(Guid Id, long UserId, string Message);
 }

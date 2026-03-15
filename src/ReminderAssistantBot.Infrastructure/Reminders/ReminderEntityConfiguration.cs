@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ReminderAssistantBot.Infrastructure.Reminders;
@@ -25,9 +25,16 @@ internal sealed class ReminderEntityConfiguration : IEntityTypeConfiguration<Rem
         builder.Property(x => x.SentAtUtc)
             .HasColumnType("timestamp with time zone");
 
+        builder.Property(x => x.LeaseUntilUtc)
+            .HasColumnType("timestamp with time zone");
+
         builder.Property(x => x.Status).IsRequired();
 
+        builder.Property(x => x.AttemptCount)
+            .HasDefaultValue(0)
+            .IsRequired();
+
         builder.HasIndex(x => x.UserId);
-        builder.HasIndex(x => new { x.Status, x.DueAtUtc });
+        builder.HasIndex(x => new { x.Status, x.DueAtUtc, x.LeaseUntilUtc });
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace ReminderAssistantBot.Domain;
+namespace ReminderAssistantBot.Domain;
 
 /// <summary>
 /// Событие напоминания (что напомнить, когда и кому).
@@ -50,8 +50,8 @@ public sealed class Reminder
         if (status == ReminderStatus.Sent && sentAtUtc is null)
             throw new ArgumentException("SentAtUtc is required when status is Sent", nameof(sentAtUtc));
 
-        if (status == ReminderStatus.Pending && sentAtUtc is not null)
-            throw new ArgumentException("SentAtUtc must be null when status is Pending", nameof(sentAtUtc));
+        if (status != ReminderStatus.Sent && sentAtUtc is not null)
+            throw new ArgumentException("SentAtUtc must be null when status is not Sent", nameof(sentAtUtc));
 
         return new Reminder
         {
@@ -66,7 +66,7 @@ public sealed class Reminder
 
     public void MarkSent()
     {
-        if (Status != ReminderStatus.Pending)
+        if (Status == ReminderStatus.Sent)
             return;
 
         Status = ReminderStatus.Sent;

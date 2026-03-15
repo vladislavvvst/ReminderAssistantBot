@@ -92,8 +92,6 @@ internal sealed class ReminderService(IReminderRepository repository, ILogger<Re
         using CancellationTokenSource ctsTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         ctsTimeout.CancelAfter(timeout);
 
-        // Тут нужно сделать AddOrUpdateTimezoneAsync
-
         try
         {
             await repository.AddOrUpdateTimezoneAsync(userId, timezoneKey, ctsTimeout.Token);
@@ -117,7 +115,7 @@ internal sealed class ReminderService(IReminderRepository repository, ILogger<Re
 
         try
         {
-            string timezoneKey = await repository.GetTimezoneAsync(userId, timeout, ctsTimeout.Token);
+            string timezoneKey = await repository.GetTimezoneAsync(userId, ctsTimeout.Token);
             return string.IsNullOrWhiteSpace(timezoneKey) ? (OperationStatus.NotFound, string.Empty) : (OperationStatus.Success, timezoneKey);
         }
         catch (OperationCanceledException) when (ctsTimeout.IsCancellationRequested && !ct.IsCancellationRequested)

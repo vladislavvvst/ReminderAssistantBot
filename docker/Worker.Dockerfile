@@ -1,8 +1,7 @@
-﻿# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-COPY ReminderAssistantBot.sln .
 COPY Directory.Packages.props .
 COPY src/ReminderAssistantBot.Worker/ReminderAssistantBot.Worker.csproj src/ReminderAssistantBot.Worker/
 COPY src/ReminderAssistantBot.Application/ReminderAssistantBot.Application.csproj src/ReminderAssistantBot.Application/

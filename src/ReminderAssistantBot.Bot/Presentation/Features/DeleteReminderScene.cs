@@ -8,7 +8,7 @@ using ReminderAssistantBot.Telegram.SceneEngine;
 
 namespace ReminderAssistantBot.Bot.Presentation.Features;
 
-internal sealed class DeleteReminderScene (IReminderService reminderService, ISceneRegistry sceneRegistry,
+internal sealed class DeleteReminderScene(IReminderService reminderService, ISceneRegistry sceneRegistry,
     IUiStateCache uiStateCache, IOptions<ReminderOptions> options) : IScene
 {
     public async Task EnterAsync(UpdateContext context, CancellationToken ct)
@@ -31,7 +31,7 @@ internal sealed class DeleteReminderScene (IReminderService reminderService, ISc
         }
 
         (OperationStatus tzStatus, string tzId) = await reminderService.GetTimezoneAsync(context.Update.UserId, options.Value.TimeoutOperation, ct);
-        if (!SceneUiUtils.TryHandleStatus(tzStatus, out string errTimezoneMsg))
+        if (!SceneUiUtils.TryResolveTimezone(tzStatus, tzId, out var zone, out string errTimezoneMsg))
         {
             await SceneUiUtils.SendErrorAsync(context, errTimezoneMsg, ct);
             await OnBackAsync(context, ct);
@@ -39,7 +39,7 @@ internal sealed class DeleteReminderScene (IReminderService reminderService, ISc
         }
 
         await UiKeyboard.SendAndTrackAsync(context, uiStateCache, CommonUiStrings.Prompts.ChooseDeleteReminder,
-            ParseMode.Html, CommonUiKeyboards.DeleteReminderKeyboard.Create(activeReminders, tzId), ct);
+            ParseMode.Html, CommonUiKeyboards.DeleteReminderKeyboard.Create(activeReminders, zone.Id), ct);
     }
 
     public async Task OnMessageAsync(UpdateContext context, CancellationToken ct)
